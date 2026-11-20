@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>شبّة — ألعاب الجمعة السعودية</title>
+  <meta name="description" content="مكتبة ألعاب جماعية للعائلة والأصحاب بمحتوى سعودي: معلومات، أمثال، لهجات، تمثيل، سوالف وتحدّيات. جوال واحد يكفي الجلسة كلها.">
+  <meta name="theme-color" content="#0F1128">
+  <meta property="og:title" content="شبّة — ألعاب الجمعة السعودية">
+  <meta property="og:description" content="15 لعبة جماعية بمحتوى سعودي للعائلة والأصحاب. بدون تسجيل وتشتغل بدون نت.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ar_SA">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="preload" href="assets/fonts/lalezar-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/readex-pro-arabic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>
+    try { var t = JSON.parse(localStorage.getItem('shabbah:theme')); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <noscript><p style="padding:24px;text-align:center">شبّة تحتاج تفعيل الجافاسكربت في المتصفح عشان تشتغل الألعاب.</p></noscript>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/data/trivia.js"></script>
+  <script src="assets/js/data/quiz.js"></script>
+  <script src="assets/js/data/words.js"></script>
+  <script src="assets/js/data/social.js"></script>
+  <script src="assets/js/engines.js"></script>
+  <script src="assets/js/games/trivia.js"></script>
+  <script src="assets/js/games/outsider.js"></script>
+  <script src="assets/js/games/charades.js"></script>
+  <script src="assets/js/games/social.js"></script>
+  <script src="assets/js/games/quizzes.js"></script>
+  <script src="assets/js/games/party.js"></script>
+  <script src="assets/js/games/skill.js"></script>
+  <script>SH.boot();</script>
+</body>
+</html>
