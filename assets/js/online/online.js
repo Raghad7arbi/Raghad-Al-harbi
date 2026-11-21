@@ -63,7 +63,7 @@
   async function openRoom(ctx, net, code, myName) {
     const base = 'rooms/' + code, me = net.uid;
     let meta = null, players = {}, state = null, inbox = {}, secret = null;
-    let ui = {}, acting = -1, inboxOff = null;
+    let ui = {}, acting = -1, inboxOff = null, conn = true;
     const box = h('div.view');
     ctx.show(box); ctx.dirty = true;
 
@@ -341,7 +341,8 @@
         : (VIEW[state.game] || VIEW.lobby)();
       const tmp = h('div',
         h('div.hud', h('span.pill.gold', 'غرفة ' + code), g ? h('span.pill', g[1] + ' ' + g[2]) : null, h('span.pill', '👥 ' + here().length)),
-        hostHere || isHost() ? null : h('div.note', 'المستضيف مو متصل الحين. ننتظر رجوعه…'),
+        conn ? null : h('div.note', h('b', 'انقطع الاتصال عندكم. '), 'نحاول نرجّعه، تأكدوا من النت.'),
+        !conn || hostHere || isHost() ? null : h('div.note', 'المستضيف مو متصل الحين. ننتظر رجوعه…'),
         body);
       box.replaceChildren(...tmp.childNodes);
       if (key !== lastKey) { lastKey = key; box.style.animation = 'none'; void box.offsetWidth; box.style.animation = ''; window.scrollTo(0, 0); }
@@ -357,7 +358,11 @@
       net.on(base + '/players', (v) => { players = v || {}; render(); tick(); }),
       net.on(base + '/state', (v) => { state = v; render(); tick(); }),
       net.on(`${base}/secret/${me}`, (v) => { secret = v; render(); tick(); }),
-      net.connected((ok) => { if (ok) { net.onDisconnect(`${base}/players/${me}/on`, false); net.update(`${base}/players/${me}`, { on: true }); } }),
+      net.connected((ok) => {
+        conn = ok;
+        if (ok) { net.onDisconnect(`${base}/players/${me}/on`, false); net.update(`${base}/players/${me}`, { on: true }); }
+        render();
+      }),
     ];
     ctx.interval(() => { if (ui.clock && state && state.step === 'discuss') ui.clock(); tick(); }, 500);
     ctx.onCleanup(() => { offs.forEach((off) => off()); if (inboxOff) inboxOff(); net.update(`${base}/players/${me}`, { on: false }).catch(() => {}); });

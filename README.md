@@ -55,7 +55,7 @@
 
 واحد يسوّي غرفة ويرسل رمزها، والباقين يدخلون من جوالاتهم. المتاح أونلاين الحين: «مين الدخيل؟»، «كم تتوقع؟»، «مين فينا؟».
 
-اللعب أونلاين **مخفي** لين تنحط إعدادات Firebase، والموقع يشتغل بدونها مثل ما هو. للتفعيل:
+اللعب أونلاين مفعّل على مشروع Firebase الموجود في `assets/js/online/config.js`. لو صارت القيمة هناك `null` يختفي والموقع يشتغل بدونه مثل ما هو. لربطه بمشروع ثاني:
 
 1. في Firebase Console: مشروع جديد، ثم Realtime Database (الموقع europe-west1، وضع locked)، ثم Authentication وتفعيل Anonymous.
 2. من Project settings أضيفوا تطبيق ويب وانسخوا `firebaseConfig` إلى `assets/js/online/config.js` بدل `null`.
