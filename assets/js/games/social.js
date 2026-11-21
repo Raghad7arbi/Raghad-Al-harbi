@@ -70,10 +70,11 @@
     const players = cfg.players;
     players.forEach((p) => { p.won = []; });
     const deck = SH.deck('whois', SH.WHOIS);
+    const own = SH.shuffle(SH.mine().whois);   /* أسئلة العائلة تطلع بالتناوب مع الباقي */
     let i = 0;
 
     function ask() {
-      const text = deck.next();
+      const text = own.length && i % 2 === 0 ? own.pop() : deck.next();
       const card = () => h('div.prompt', h('span.tag', 'مين فينا أكثر واحد…'), text + '؟');
       ctx.view(
         h('div.hud', h('span.pill', `سؤال ${i + 1} من ${cfg.n}`)),
@@ -98,7 +99,7 @@
       if (i < cfg.n) return ask();
       ctx.results({
         rows: players.map((p) => Object.assign(p, { sub: p.won.length ? 'اللي ' + p.won[0] : 'طلع منها سليم 😇' })),
-        unit: '', kicker: 'نجم السهرة', icon: '🌟',
+        unit: '', kicker: SH.dayNight('نجم العصرية', 'نجم السهرة'), icon: '🌟',
         award: (w) => (w.won.length ? 'اللي ' + w.won[w.won.length - 1] : 'الكل سليم'),
       });
     }
@@ -131,6 +132,8 @@
     const n = players.length;
     players.forEach((p) => { p.turns = 0; });
     const truths = SH.deck('truth', SH.TRUTH), dares = SH.deck('dare', SH.DARE);
+    const mine = SH.mine();
+    const own = { truth: SH.shuffle(mine.truth), dare: SH.shuffle(mine.dare) };
     let rot = 0, last = -1;
 
     function arena(pointAt) {
@@ -173,7 +176,7 @@
       let swapped = false;
       const slot = h('div', { style: { flex: '1', display: 'flex', flexDirection: 'column' } });
       const draw = () => {
-        const text = (kind === 'truth' ? truths : dares).next();
+        const text = own[kind].length && Math.random() < 0.5 ? own[kind].pop() : (kind === 'truth' ? truths : dares).next();
         slot.replaceChildren(h('div.prompt.pop.grow', h('span.tag', kind === 'truth' ? '🗣️ صراحة' : '🎯 تحدّي'), text));
       };
       const swap = h('button.btn', { type: 'button', onclick() { if (swapped) return; swapped = true; swap.disabled = true; Sound.play('flip'); draw(); } }, '🔄 بدّلها (مرة وحدة)');

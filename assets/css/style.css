@@ -50,6 +50,7 @@
   --dune2: #2E3486;
   --dune3: #171A45;
   --moon: #FFF1C2;
+  --night-g: #2B2550; --night-g2: #120F29; --night-ink: #FFF6E6;
   --tour-g: #2B2550; --tour-g2: #120F29; --tour-ink: #FFF6E6; --tour-hi: #FFC83D; --tour-ring: #FFC83D;
   --tour-btn: #FFC83D; --tour-btn-ink: #33230A; --tour-btn-sh: #C98F0A;
   --show-day: none; --show-night: inline;
@@ -79,6 +80,7 @@
     --ink: #1B1730; --muted: #615A78; --line: rgba(27, 23, 48, .14); --shadow: rgba(92, 62, 20, .28);
     --accent: #B4500A; --glow1: rgba(255, 176, 46, .35); --glow2: rgba(216, 52, 59, .10);
     --star: rgba(180, 80, 10, .0); --dune1: #E9C98C; --dune2: #DDB56E; --dune3: #F1D9A8; --moon: #FF9D2E;
+    --night-g: #DCD5FA; --night-g2: #A898E8; --night-ink: #1B1730;
     --tour-g: #FFC83D; --tour-g2: #D29A0C; --tour-ink: #33230A; --tour-hi: #1B1730; --tour-ring: transparent;
     --tour-btn: #1B1730; --tour-btn-ink: #FFF6E6; --tour-btn-sh: #000;
     --show-day: inline; --show-night: none;
@@ -90,6 +92,7 @@
   --ink: #1B1730; --muted: #615A78; --line: rgba(27, 23, 48, .14); --shadow: rgba(92, 62, 20, .28);
   --accent: #B4500A; --glow1: rgba(255, 176, 46, .35); --glow2: rgba(216, 52, 59, .10);
   --star: rgba(180, 80, 10, .0); --dune1: #E9C98C; --dune2: #DDB56E; --dune3: #F1D9A8; --moon: #FF9D2E;
+    --night-g: #DCD5FA; --night-g2: #A898E8; --night-ink: #1B1730;
     --tour-g: #FFC83D; --tour-g2: #D29A0C; --tour-ink: #33230A; --tour-hi: #1B1730; --tour-ring: transparent;
     --tour-btn: #1B1730; --tour-btn-ink: #FFF6E6; --tour-btn-sh: #000;
     --show-day: inline; --show-night: none;
@@ -103,11 +106,11 @@
 .dye-red    { --g: #CF2F38; --g2: #9C1A26; --g-ink: #FFFFFF; }
 .dye-pink   { --g: #F0699C; --g2: #C63F75; --g-ink: #3A0A1E; }
 .dye-gold   { --g: #FFC83D; --g2: #D29A0C; --g-ink: #33230A; }
-.dye-night  { --g: #2B2550; --g2: #120F29; --g-ink: #FFF6E6; }
+.dye-night  { --g: var(--night-g); --g2: var(--night-g2); --g-ink: var(--night-ink); }
 .dye-teal   { --g: #17B5B0; --g2: #0D8581; --g-ink: #05282A; }
 .dye-sky    { --g: #2F74E8; --g2: #1C52B4; --g-ink: #FFFFFF; }
 .dye-tour   { --g: var(--tour-g); --g2: var(--tour-g2); --g-ink: var(--tour-ink); }
-/* الصبغة الليلية غامقة، فعناصر التحكم فيها ذهبية عشان تبان */
+/* الصبغة الليلية (بنفسجي غامق بالليل وفاتح بالنهار): عناصر التحكم فيها ذهبية عشان تبان */
 .dye-night .btn-primary, .dye-tour .btn-primary { background: var(--gold); color: #33230A; --sh: var(--gold2); }
 .dye-night .seg button[aria-pressed="true"], .dye-night .steps li::before,
 .dye-tour .seg button[aria-pressed="true"], .dye-tour .steps li::before { background: var(--gold); color: #33230A; }
@@ -294,7 +297,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* بانر البطولة */
 .tour-banner {
-  position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; margin-bottom: 26px; padding: 30px 18px;
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; margin-bottom: 12px; padding: 30px 18px;
   border-radius: 26px; background: linear-gradient(135deg, color-mix(in srgb, var(--tour-g) 86%, #fff), var(--tour-g)); color: var(--tour-ink); text-decoration: none;
   box-shadow: inset 0 0 0 2px var(--tour-ring), 0 6px 0 var(--tour-g2), 0 20px 28px -16px var(--shadow);
   transition: transform .16s cubic-bezier(.2, .9, .3, 1.3);
@@ -308,6 +311,16 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tb-t b { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 7vw, 38px); line-height: 1.2; color: var(--tour-hi); }
 .tb-go { flex: none; padding: 10px 18px; border-radius: 16px; background: var(--tour-btn); color: var(--tour-btn-ink); font-weight: 700; box-shadow: 0 4px 0 var(--tour-btn-sh); }
 @media (max-width: 460px) { .tour-banner { flex-wrap: wrap; } .tb-go { flex: 1 1 100%; text-align: center; } }
+.mine-link {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 26px; padding: 12px 16px; border-radius: 20px;
+  background: var(--surface); color: var(--ink); text-decoration: none; font-size: 14.5px; line-height: 1.55;
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--surface) 60%, #000); transition: transform .08s;
+}
+.mine-link:active { transform: translateY(3px); box-shadow: none; }
+.mine-link .e { font-size: 34px; line-height: 1.1; flex: none; }
+.mine-link > span:nth-child(2) { flex: 1; min-width: 0; color: var(--muted); }
+.mine-link b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 23px; line-height: 1.3; color: var(--ink); }
+.mine-link .go { flex: none; font-weight: 700; color: var(--accent); }
 
 .foot { padding-block: 26px 40px; color: var(--muted); font-size: 14px; text-align: center; }
 .foot b { color: var(--ink); }
@@ -613,6 +626,16 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tally b { font-family: var(--font-display); font-weight: 400; font-size: 26px; min-width: 2.2em; text-align: center; line-height: 1; padding-top: 4px; }
 .tally button { min-width: 46px; height: 44px; border-radius: 12px; background: var(--surface2); font-weight: 700; padding-inline: 8px; }
 .tally button:active { transform: scale(.94); }
+
+/* أسئلة العائلة */
+.inp { width: 100%; min-height: 50px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg); font-weight: 600; font-size: 16px; }
+.inp:focus { outline: none; border-color: var(--g, var(--gold)); }
+.own-list { display: grid; gap: 8px; }
+.own-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 16px; background: var(--surface); }
+.own-item .t { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.own-item .t small { display: block; color: var(--accent); font-weight: 600; font-size: 14px; }
+.own-item .x { flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--surface2); font-size: 15px; }
+.card-preview { display: block; width: 100%; max-height: 56vh; object-fit: contain; border-radius: 16px; }
 
 /* البطولة */
 .tdot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-inline-end: 8px; }

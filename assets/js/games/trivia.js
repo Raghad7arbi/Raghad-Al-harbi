@@ -14,11 +14,14 @@
     const teams = cfg.teams;
     teams.forEach((t) => { t.half = true; t.dbl = true; });
     const used = new Set(Store.get('trivia:used', []));
+    /* أسئلة العائلة: سؤال وجواب بدون اختيارات، والجلسة تحكم صح أو غلط */
+    const mine = SH.mine().trivia.map(([q, a]) => [0, q, a]);
+    const cats = mine.length ? T.cats.concat([['mine', '🏠', 'أسئلة العائلة']]) : T.cats;
     let round = 1, turn = 0;
     const golden = () => cfg.rounds > 1 && round === cfg.rounds;
 
     function draw(cat, lvl) {
-      const all = T.q[cat].map((q, i) => ({ q, key: cat + ':' + i }));
+      const all = (cat === 'mine' ? mine : T.q[cat]).map((q, i) => ({ q, key: cat + ':' + i }));
       let pool = all.filter((x) => !used.has(x.key));
       if (!pool.length) { all.forEach((x) => used.delete(x.key)); pool = all; }
       const same = pool.filter((x) => x.q[0] === lvl);
@@ -37,7 +40,7 @@
       ctx.view(
         head(),
         h('div.turn', { style: { '--c': t.color } }, h('p.eyebrow', 'الدور على'), h('div.who', t.name), h('p.muted', 'اختاروا المجال')),
-        h('div.tiles', T.cats.map(([id, e, name]) => h('button.pickt', { type: 'button', onclick() { Sound.play('pop'); pickLevel(id, e, name); } }, h('span.e', e), name)))
+        h('div.tiles', cats.map(([id, e, name]) => h('button.pickt', { type: 'button', onclick() { Sound.play('pop'); pickLevel(id, e, name); } }, h('span.e', e), name)))
       );
     }
 
@@ -64,6 +67,7 @@
       const q = draw(cat, lvl);
       const right = q[2], wrongs = q.slice(3, 6), note = q[6];
       const base = lvl * 100 * (golden() ? 2 : 1);
+      if (cat === 'mine') return askOpen(q[1], right, base, dbl);
       let answering = turn, stealing = false, done = false;
 
       const banner = h('div.turn', { style: { '--c': t.color } });
@@ -135,10 +139,45 @@
       startTimer(30);
     }
 
+    /* سؤال مفتوح: الفريق يجاوب بصوته، ثم ينكشف الجواب والجلسة تحكم */
+    function askOpen(text, answer, base, dbl) {
+      const t = teams[turn];
+      let shown = false;
+      const after = h('div', { style: { display: 'grid', gap: '12px' } });
+      const scoreSlot = h('div', SH.scorebar(teams, turn));
+      const revealBtn = h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick() { reveal(); } }, 'اكشف الجواب');
+      const tm = SH.timer(ctx, 30, { onEnd() { reveal(); } });
+      function judge(ok) {
+        const gain = dbl ? base * 2 : base;
+        if (ok) t.score += gain; else if (dbl) t.score -= base;
+        Sound.play(ok ? 'good' : 'bad'); buzz(ok ? 30 : 140);
+        scoreSlot.replaceChildren(SH.scorebar(teams, turn));
+        after.replaceChildren(
+          h('div.note', h('b', ok ? `كفو يا ${t.name}! +${gain} ` : 'ما ضبطت! '), 'الجواب: ' + answer),
+          h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick() { Sound.play('pop'); next(); } }, 'التالي'));
+      }
+      function reveal() {
+        if (shown) return; shown = true; tm.stop(); Sound.play('reveal'); revealBtn.remove();
+        after.append(
+          h('div.note', h('b', 'الجواب: '), answer),
+          h('p.center.label', `جاوب ${t.name} صح؟`),
+          h('div.row', h('button.btn.btn-ok', { type: 'button', onclick() { judge(true); } }, '✓ صح'), h('button.btn.btn-bad', { type: 'button', onclick() { judge(false); } }, '✗ غلط')));
+        after.lastChild.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      ctx.view(
+        h('div.hud', tm.el, h('div.turn', { style: { '--c': t.color } }, h('p.eyebrow', `🏠 أسئلة العائلة · ${dbl ? base * 2 : base} نقطة${dbl ? ' (دبل)' : ''}`), h('div.who', { style: { fontSize: '28px' } }, t.name)), h('span')),
+        scoreSlot,
+        h('div.prompt', text),
+        h('p.muted.center.small', 'جاوبوا بصوت عالي، ثم اكشفوا الجواب'),
+        revealBtn, after
+      );
+      tm.start();
+    }
+
     function next() {
       turn++;
       if (turn >= teams.length) { turn = 0; round++; }
-      if (round > cfg.rounds) return ctx.results({ rows: teams, unit: '', award: (w, tie) => (tie ? 'فطاحلة كلكم 🧠' : 'فطاحلة السهرة 🧠') });
+      if (round > cfg.rounds) return ctx.results({ rows: teams, unit: '', award: (w, tie) => (tie ? 'فطاحلة كلكم 🧠' : SH.dayNight('فطاحلة العصرية 🧠', 'فطاحلة السهرة 🧠')) });
       if (turn === 0 && golden()) {
         Sound.play('reveal');
         ctx.view(h('div.pass', h('span.phone', { style: { animation: 'bob 2s ease-in-out infinite' } }, '✨'), h('div.big', 'الجولة الذهبية'), h('p.muted', 'آخر جولة وكل النقاط مضاعفة. اللي ورا يقدر يقلبها!')),

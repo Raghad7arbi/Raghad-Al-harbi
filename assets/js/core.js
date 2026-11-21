@@ -187,6 +187,11 @@
   /* نص له صيغتين: واحدة للوضع النهاري وواحدة لليلي، والتبديل بالـCSS فيتبع الثيم تلقائياً */
   const dayNight = (day, night) => h('span', h('span.when-day', day), h('span.when-night', night));
   const gname = (g) => (g.nameEl ? g.nameEl() : g.name);
+  const isDay = () => currentTheme() === 'light';
+  /* نص عادي من قيمة قد تكون نصاً أو عنصر dayNight (نحتاجه في بطاقة النتيجة) */
+  const plain = (x) => (x == null ? '' : typeof x === 'string' ? x : ((x.querySelector && x.querySelector(isDay() ? '.when-day' : '.when-night')) || x).textContent);
+  /* أسئلة العائلة المحفوظة على الجهاز */
+  const mine = () => { const d = Store.get('mine', null) || {}; return { trivia: d.trivia || [], whois: d.whois || [], truth: d.truth || [], dare: d.dare || [] }; };
 
   function seg(choices, value, onChange, multi) {
     const el = h('div.seg', { role: 'group' });
@@ -361,6 +366,12 @@
       h('span.tb-t', h('b', dayNight('بطولة العصرية', 'بطولة السهرة')), h('span', live ? `بطولتكم واقفة عند اللعبة ${saved.idx + 1} من ${saved.games.length}. كمّلوها!` : 'اختاروا ألعابكم، والنقاط تتجمّع من لعبة للعبة لين التتويج.')),
       h('span.tb-go', live ? 'كمّلوا' : 'ابدأوا')) : null;
 
+    const own = mine(), ownCount = own.trivia.length + own.whois.length + own.truth.length + own.dare.length;
+    const mineLink = SH.games.some((g) => g.id === 'mine') ? h('a.mine-link', { href: '#mine', onclick() { Sound.play('pop'); } },
+      h('span.e', { 'aria-hidden': 'true' }, '🏠'),
+      h('span', h('b', 'أسئلة العائلة'), ownCount ? `عندكم ${ownCount} من أسئلتكم وسوالفكم في الألعاب.` : 'اكتبوا أسئلتكم وسوالفكم الخاصة وتدخل في الألعاب.'),
+      h('span.go', ownCount ? 'عدّلوا' : 'اكتبوا')) : null;
+
     const themeB = h('button.icon-btn', { type: 'button', 'aria-label': 'تبديل الوضع الليلي والنهاري', onclick() { setTheme(currentTheme() === 'dark' ? 'light' : 'dark'); themeB.textContent = currentTheme() === 'dark' ? '☀️' : '🌙'; Sound.play('pop'); } }, currentTheme() === 'dark' ? '☀️' : '🌙');
 
     app.replaceChildren(
@@ -381,7 +392,7 @@
       h('div.sadu', { role: 'presentation' }),
       h('main',
         h('section.section.wrap', { id: 'games' },
-          tourBanner,
+          tourBanner, mineLink,
           h('div.section-head', h('h2', 'مكتبة الألعاب'), h('p', 'اختاروا على مزاج الجلسة')),
           chips, grid)),
       h('div.sadu', { role: 'presentation' }),
@@ -506,18 +517,31 @@
     Sound.play('win'); buzz([60, 40, 60, 40, 160]); confetti();
     const medals = ['🥇', '🥈', '🥉'];
     let place = 0;
+    const ranked = rows.map((r, i) => { if (i > 0 && r.score < rows[i - 1].score) place = i; return { r, place, medal: medals[place] || String(place + 1) }; });
+    const icon = spec.icon || (tie ? '🤝' : '🏆');
+    const kicker = spec.kicker || (tie ? 'تعادل! ما فيه غالب ولا مغلوب' : 'الفايز');
+    const headline = spec.headline || (tie ? rows.filter((r) => r.score === top.score).map((r) => r.name).join(' و ') : top.name);
+    const award = spec.award ? (typeof spec.award === 'function' ? spec.award(top, tie) : spec.award) : null;
+    const listed = rows.length > 1 || spec.showSingle;
+    const g = ctx.game;
+    const card = {
+      game: plain(gname(g)), emoji: g.emoji, icon, kicker: plain(kicker), headline: plain(headline), award: plain(award),
+      rows: listed ? ranked.map((x) => ({ name: x.r.name, score: String(x.r.score) + (spec.unit ? ' ' + spec.unit : ''), medal: x.medal })) : [],
+    };
+    /* نجهّز الصورة من الحين، عشان المشاركة تشتغل مباشرة مع الضغطة (بعض الجوالات ترفضها لو تأخرت) */
+    let cardBlob = null;
+    if (SH.cardBlob) SH.cardBlob(card).then((b) => { cardBlob = b; });
+    const share = () => { Sound.play('pop'); SH.share(card, cardBlob); };
     ctx.view(
       h('div.podium',
-        h('span.crown', { 'aria-hidden': 'true' }, spec.icon || (tie ? '🤝' : '🏆')),
-        h('p.eyebrow', spec.kicker || (tie ? 'تعادل! ما فيه غالب ولا مغلوب' : 'الفايز')),
-        h('div.who', spec.headline || (tie ? rows.filter((r) => r.score === top.score).map((r) => r.name).join(' و ') : top.name)),
-        spec.award ? h('span.award', typeof spec.award === 'function' ? spec.award(top, tie) : spec.award) : null),
-      rows.length > 1 || spec.showSingle ? h('div.rank', rows.map((r, i) => {
-        if (i > 0 && r.score < rows[i - 1].score) place = i;
-        return h('div.rank-row', { style: { '--i': i } }, h('span.m', medals[place] || String(place + 1)), h('span.n', r.name, r.sub ? h('small', r.sub) : null), h('span.s', String(r.score) + (spec.unit ? ' ' + spec.unit : '')));
-      })) : null,
+        h('span.crown', { 'aria-hidden': 'true' }, icon),
+        h('p.eyebrow', kicker),
+        h('div.who', headline),
+        award ? h('span.award', award) : null),
+      listed ? h('div.rank', ranked.map((x, i) => h('div.rank-row', { style: { '--i': i } }, h('span.m', x.medal), h('span.n', x.r.name, x.r.sub ? h('small', x.r.sub) : null), h('span.s', String(x.r.score) + (spec.unit ? ' ' + spec.unit : ''))))) : null,
       spec.extra || null,
       h('div.spacer'),
+      SH.share ? h('button.btn.btn-gold.btn-block', { type: 'button', onclick: share }, '📤 شاركوا النتيجة') : null,
       h('div.row',
         h('button.btn.btn-primary', { type: 'button', onclick() { Sound.play('pop'); ctx.restart(); } }, '🔁 نعيدها'),
         h('button.btn', { type: 'button', onclick() { Sound.play('tap'); ctx.home(); } }, 'لعبة ثانية'))
@@ -556,5 +580,5 @@
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
   };
 
-  Object.assign(SH, { dayNight, h, rnd, pick, shuffle, clamp, Store, deck, Sound, buzz, confetti, toast, modal, confirm: confirmBox, seg, timer, scorebar, countdown, PALETTE, add(g) { SH.games.push(g); } });
+  Object.assign(SH, { dayNight, isDay, mine, h, rnd, pick, shuffle, clamp, Store, deck, Sound, buzz, confetti, toast, modal, confirm: confirmBox, seg, timer, scorebar, countdown, PALETTE, add(g) { SH.games.push(g); } });
 })();
