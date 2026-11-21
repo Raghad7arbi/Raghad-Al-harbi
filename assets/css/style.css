@@ -97,6 +97,10 @@
 .dye-night  { --g: #2B2550; --g2: #120F29; --g-ink: #FFF6E6; }
 .dye-teal   { --g: #17B5B0; --g2: #0D8581; --g-ink: #05282A; }
 .dye-sky    { --g: #2F74E8; --g2: #1C52B4; --g-ink: #FFFFFF; }
+/* الصبغة الليلية غامقة، فعناصر التحكم فيها ذهبية عشان تبان */
+.dye-night .btn-primary { background: var(--gold); color: #33230A; --sh: var(--gold2); }
+.dye-night .seg button[aria-pressed="true"], .dye-night .steps li::before { background: var(--gold); color: #33230A; }
+.dye-night .name-row input:focus { border-color: var(--gold); }
 
 /* ---------- الأساس ---------- */
 *, *::before, *::after { box-sizing: border-box; }
@@ -274,15 +278,23 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 @keyframes pulseTile { 50% { transform: scale(1.06) rotate(1.5deg); box-shadow: 0 6px 0 var(--g2), 0 0 0 6px var(--gold); } }
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 
-/* العلم ورا الوناسة */
-.science { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.sci {
-  background: var(--surface); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 6px;
-  border-top: 5px solid var(--c, var(--gold));
+/* بانر البطولة */
+.tour-banner {
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; margin-bottom: 26px; padding: 30px 18px;
+  border-radius: 26px; background: var(--night); color: var(--cream); text-decoration: none;
+  box-shadow: inset 0 0 0 2px var(--gold), 0 6px 0 #0a0818, 0 20px 28px -16px var(--shadow);
+  transition: transform .16s cubic-bezier(.2, .9, .3, 1.3);
 }
-.sci h3 { font-size: 24px; }
-.sci p { color: var(--muted); font-size: 15px; }
-.sci cite { margin-top: auto; padding-top: 8px; font-style: normal; font-size: 12px; color: var(--accent); font-weight: 600; direction: ltr; text-align: end; }
+.tour-banner::before, .tour-banner::after { content: ""; position: absolute; inset: 0 0 auto; height: 14px; background: var(--sadu) repeat-x center / auto 100%; }
+.tour-banner::after { inset: auto 0 0; }
+.tour-banner:hover { transform: translateY(-4px); }
+.tour-banner:active { transform: translateY(4px); }
+.tb-e { font-size: 54px; line-height: 1.1; flex: none; filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .3)); animation: bob 2.4s ease-in-out infinite; }
+.tb-t { flex: 1; min-width: 0; display: grid; gap: 2px; font-size: 14.5px; line-height: 1.6; }
+.tb-t b { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 7vw, 38px); line-height: 1.2; color: var(--gold); }
+.tb-go { flex: none; padding: 10px 18px; border-radius: 16px; background: var(--gold); color: #33230A; font-weight: 700; box-shadow: 0 4px 0 var(--gold2); }
+@media (max-width: 460px) { .tour-banner { flex-wrap: wrap; } .tb-go { flex: 1 1 100%; text-align: center; } }
+
 .foot { padding-block: 26px 40px; color: var(--muted); font-size: 14px; text-align: center; }
 .foot b { color: var(--ink); }
 
@@ -587,6 +599,18 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tally b { font-family: var(--font-display); font-weight: 400; font-size: 26px; min-width: 2.2em; text-align: center; line-height: 1; padding-top: 4px; }
 .tally button { min-width: 46px; height: 44px; border-radius: 12px; background: var(--surface2); font-weight: 700; padding-inline: 8px; }
 .tally button:active { transform: scale(.94); }
+
+/* البطولة */
+.tdot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-inline-end: 8px; }
+.sched { display: grid; gap: 6px; }
+.sched > div { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 14px; background: var(--surface); font-weight: 600; }
+.sched .st { flex: none; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--surface2); font-family: var(--font-display); font-size: 18px; line-height: 1; }
+.sched .nm { flex: 1; min-width: 0; }
+.sched .nm small { display: block; color: var(--accent); font-size: 12.5px; }
+.sched > div > small { color: var(--muted); font-size: 13px; }
+.sched .now { box-shadow: inset 0 0 0 2px var(--gold); }
+.sched .now .st { background: var(--gold); color: #33230A; }
+.sched .done .st { background: var(--ok); color: #06281A; }
 
 .list { display: grid; gap: 6px; }
 .list div { display: flex; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 14px; background: var(--surface); font-weight: 600; }

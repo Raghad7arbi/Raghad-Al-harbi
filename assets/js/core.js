@@ -310,17 +310,6 @@
 
   const FILTERS = [['all', 'الكل'], ['laugh', '🔥 ضحك وحماس'], ['brain', '🧠 تفكير ومعلومات'], ['talk', '🗣️ سوالف'], ['kids', '🧒 تناسب الصغار'], ['duo', '👥 تنلعب لشخصين']];
 
-  const SCIENCE = [
-    ['#FFC83D', 'التحدي على قد المهارة', 'اللعبة السهلة تملّل والصعبة تحبّط. عشان كذا أنتم اللي تختارون مستوى الجرأة، والوقت يضغط بالقدر اللي يحمّس وما يوتّر.', 'Csikszentmihalyi (1990) · Flow'],
-    ['#2FD08A', 'حرية، إنجاز، قُرب', 'الناس تستمتع لما تختار بنفسها، وتشوف نتيجة شطارتها، وتحس بقربها من اللي حولها. فالاختيار بيدكم، والنتيجة فورية، واللعب كله وجه لوجه.', 'Ryan, Rigby & Przybylski (2006) · SDT'],
-    ['#F0699C', 'أربعة مفاتيح للمتعة', 'متعة التحدي، ومتعة الاستكشاف، ومتعة الناس، ومتعة المعنى. المكتبة موزّعة عليها كلها عشان كل واحد بالجلسة يلقى لعبته.', 'Lazzaro (2004) · 4 Keys to Fun'],
-    ['#FF8A1F', 'القمة والختام', 'الذاكرة تحفظ أقوى لحظة وآخر لحظة. عشان كذا فيه جولة ذهبية مضاعفة تقلب النتيجة، وتتويج بألقاب في النهاية.', 'Kahneman et al. (1993) · Peak–End'],
-    ['#17B5B0', 'كل ضغطة لها ردّة فعل', 'صوت وحركة واهتزاز مع كل لمسة تخلّي اللعب محسوس وممتع حتى قبل ما تفوز.', 'Hicks et al. (2019) · Juicy Game Design'],
-    ['#7A5CF0', 'الغموض وقود الحماس', 'دخيل مخفي بينكم، قنبلة ما تدري متى تنفجر، ودلّة ما تدري على مين توقف.', 'Costikyan (2013) · Uncertainty in Games'],
-    ['#D8343B', 'تنشرح في عشر ثواني', 'لعبة الجمعة تنجح إذا فهمها الصغير والكبير بسرعة. كل لعبة هنا ثلاث خطوات وتبدأ، وتقدر توقفها متى ما جا العشا.', 'Juul (2010) · A Casual Revolution'],
-    ['#2F74E8', 'نبدأ من الشعور', 'نحدد أول الإحساس اللي نبيه (ضحك، حماس، سوالف) ثم نبني القوانين اللي توصّل له، مو العكس.', 'Hunicke, LeBlanc & Zubek (2004) · MDA'],
-  ];
-
   let homeScroll = 0, filter = 'all';
 
   function setTheme(mode) {
@@ -338,7 +327,7 @@
   function mountHome(app) {
     const grid = h('div.grid');
     const drawGrid = () => {
-      const list = SH.games.filter((g) => filter === 'all' || g.moods.includes(filter));
+      const list = SH.games.filter((g) => !g.hidden && (filter === 'all' || g.moods.includes(filter)));
       grid.replaceChildren(...list.map((g, i) => h('a.tile.dye-' + g.color, { href: '#' + g.id, id: 'tile-' + g.id, style: { '--i': i }, onclick() { Sound.play('pop'); } },
         h('span.t-emoji', { 'aria-hidden': 'true' }, g.emoji), h('h3', g.name), h('span.t-tag', g.tagline),
         h('span.t-meta', h('span', '👥 ' + g.players), h('span', '⏱ ' + g.time)))));
@@ -361,6 +350,13 @@
       })();
     };
 
+    const saved = Store.get('tour', null);
+    const live = !!(saved && Array.isArray(saved.games) && saved.idx > 0 && saved.idx < saved.games.length);
+    const tourBanner = SH.games.some((g) => g.id === 'tour') ? h('a.tour-banner', { href: '#tour', onclick() { Sound.play('pop'); } },
+      h('span.tb-e', { 'aria-hidden': 'true' }, '🏆'),
+      h('span.tb-t', h('b', 'بطولة السهرة'), h('span', live ? `بطولتكم واقفة عند اللعبة ${saved.idx + 1} من ${saved.games.length}. كمّلوها!` : 'اختاروا ألعابكم، والنقاط تتجمّع من لعبة للعبة لين التتويج.')),
+      h('span.tb-go', live ? 'كمّلوا' : 'ابدأوا')) : null;
+
     const themeB = h('button.icon-btn', { type: 'button', 'aria-label': 'تبديل الوضع الليلي والنهاري', onclick() { setTheme(currentTheme() === 'dark' ? 'light' : 'dark'); themeB.textContent = currentTheme() === 'dark' ? '☀️' : '🌙'; Sound.play('pop'); } }, currentTheme() === 'dark' ? '☀️' : '🌙');
 
     app.replaceChildren(
@@ -376,17 +372,14 @@
             h('div.hero-cta',
               h('a.btn.btn-fire.btn-xl', { href: '#games', onclick(e) { e.preventDefault(); Sound.play('pop'); document.getElementById('games').scrollIntoView({ behavior: 'smooth' }); } }, 'يلا نلعب'),
               h('button.btn.btn-xl', { type: 'button', onclick: surprise }, '🎲 اختاروا لنا')),
-            h('div.hero-facts', h('span', h('b', String(SH.games.length)), 'لعبة'), h('span', h('b', '0'), 'تسجيل'), h('span', h('b', '100%'), 'مناسبة للعائلة'), h('span', 'تشتغل بدون نت'))),
+            h('div.hero-facts', h('span', h('b', String(SH.games.filter((g) => !g.hidden).length)), 'لعبة'), h('span', h('b', '0'), 'تسجيل'), h('span', h('b', '100%'), 'مناسبة للعائلة'), h('span', 'تشتغل بدون نت'))),
           h('div.scene-wrap', { html: SCENE }))),
       h('div.sadu', { role: 'presentation' }),
       h('main',
         h('section.section.wrap', { id: 'games' },
+          tourBanner,
           h('div.section-head', h('h2', 'مكتبة الألعاب'), h('p', 'اختاروا على مزاج الجلسة')),
-          chips, grid),
-        h('div.sadu', { role: 'presentation' }),
-        h('section.section.wrap', { id: 'science' },
-          h('div.section-head', h('h2', 'العلم ورا الوناسة'), h('p', 'كل لعبة مبنية على مبادئ معروفة في أبحاث تصميم الألعاب')),
-          h('div.science', SCIENCE.map(([c, t, p, src]) => h('article.sci', { style: { '--c': c } }, h('h3', t), h('p', p), h('cite', src)))))),
+          chips, grid)),
       h('div.sadu', { role: 'presentation' }),
       h('footer.foot.wrap', h('p', h('b', 'شبّة'), ' — صُنعت للجمعات الحلوة. كل المحتوى نظيف ومناسب لكل الأعمار.'), h('p', 'ثبّتوها على الجوال من قائمة المتصفح «إضافة إلى الشاشة الرئيسية» وتشتغل معكم حتى في البر.'))
     );
@@ -415,48 +408,62 @@
       clear(t) { clearTimeout(t); clearInterval(t); ctx.timers.delete(t); },
       onCleanup(fn) { ctx.cleanups.push(fn); },
       home() { location.hash = ''; },
-      restart() { ctx.timers.forEach((t) => { clearTimeout(t); clearInterval(t); }); ctx.timers.clear(); ctx.dirty = false; g.start(ctx); },
-      intro(spec) { intro(ctx, spec); },
-      results(spec) { results(ctx, spec); },
+      /* يوقف مؤقتات ومخلّفات اللعبة الحالية (بين ألعاب البطولة أو عند الإعادة) */
+      reset() {
+        ctx.timers.forEach((t) => { clearTimeout(t); clearInterval(t); }); ctx.timers.clear();
+        ctx.cleanups.splice(0).forEach((fn) => { try { fn(); } catch (e) { /* تجاهل */ } });
+        document.querySelectorAll('.modal, .countdown, .duel').forEach((n) => n.remove());
+      },
+      restart() { ctx.reset(); ctx.dirty = false; ctx.setGame(g); g.start(ctx); },
+      /* this وليس ctx: عشان اللعبة الفرعية في البطولة تمرّر إعداداتها */
+      intro(spec) { intro(this, spec); },
+      results(spec) { results(this, spec); },
       pass(name, cb, o) { pass(ctx, name, cb, o); },
     });
 
+    let shown = g;
+    const title = h('div.title');
+    const shell = h('div.game');
+    ctx.setGame = (x) => { shown = x; shell.className = 'game dye-' + x.color; title.replaceChildren(h('span', { 'aria-hidden': 'true' }, x.emoji), x.name); };
+    ctx.setGame(g);
+
     const help = () => {
       const m = modal([
-        h('h3', g.emoji + ' ' + g.name),
-        h('ol.steps.dye-' + g.color, g.how.map((s) => h('li', s))),
-        g.science ? h('div.note', h('b', 'ليش تمسك الجلسة؟ '), g.science) : null,
+        h('h3', shown.emoji + ' ' + shown.name),
+        h('ol.steps.dye-' + shown.color, shown.how.map((s) => h('li', s))),
         h('button.btn.btn-gold.btn-block', { onclick() { m.close(); } }, 'فهمت'),
       ]);
     };
     const leave = async () => {
       Sound.play('tap');
-      if (!ctx.dirty || (await confirmBox('تطلعون من اللعبة؟ النتيجة بتروح.', 'نطلع', 'نكمّل'))) ctx.home();
+      if (!ctx.dirty || (await confirmBox(g.leaveMsg || 'تطلعون من اللعبة؟ النتيجة بتروح.', 'نطلع', 'نكمّل'))) ctx.home();
     };
 
     app.replaceChildren(
       h('div.sky'),
-      h('div.game.dye-' + g.color,
-        h('div.topbar',
-          h('button.icon-btn', { type: 'button', 'aria-label': 'رجوع للمكتبة', onclick: leave }, '✕'),
-          h('div.title', h('span', { 'aria-hidden': 'true' }, g.emoji), g.name),
-          h('button.icon-btn', { type: 'button', 'aria-label': 'طريقة اللعب', onclick() { Sound.play('tap'); help(); } }, '؟'),
-          soundBtn()),
-        h('div.topbar-band'),
-        stage));
+      shell);
+    shell.append(
+      h('div.topbar',
+        h('button.icon-btn', { type: 'button', 'aria-label': 'رجوع للمكتبة', onclick: leave }, '✕'),
+        title,
+        h('button.icon-btn', { type: 'button', 'aria-label': 'طريقة اللعب', onclick() { Sound.play('tap'); help(); } }, '؟'),
+        soundBtn()),
+      h('div.topbar-band'),
+      stage);
     window.scrollTo(0, 0);
     wake(true);
     g.start(ctx);
   }
 
+  /* ctx.preset (في البطولة): { kicker, note, defaults, roster() } يغني عن تسجيل الفرق */
   function intro(ctx, spec) {
-    const g = ctx.game;
-    const savedOpt = Store.get('opt:' + g.id, {});
+    const g = ctx.game, pre = ctx.preset || null;
+    const savedOpt = pre ? pre.defaults : Store.get('opt:' + g.id, {});
     const cfg = {};
     const fields = [];
     let setup = null;
-    if (spec.setup === 'teams') setup = teamSetup(spec.min || 2, spec.max || 4);
-    if (spec.setup === 'players') setup = playerSetup(spec.min || 2, spec.max || 10, spec.setupLabel);
+    if (!pre && spec.setup === 'teams') setup = teamSetup(spec.min || 2, spec.max || 4);
+    if (!pre && spec.setup === 'players') setup = playerSetup(spec.min || 2, spec.max || 10, spec.setupLabel);
     (spec.options || []).forEach((o) => {
       const valid = o.choices.map((c) => c[0]);
       let v = savedOpt[o.key];
@@ -466,23 +473,28 @@
       fields.push(h('div.field', h('span.label', o.label), seg(o.choices, v, (nv) => { cfg[o.key] = nv; }, o.multi)));
     });
     const go = () => {
+      const roster = pre ? pre.roster() : setup ? setup.value() : null;
+      if (spec.setup === 'teams') cfg.teams = roster;
+      if (spec.setup === 'players') cfg.players = roster;
+      const err = spec.validate && spec.validate(cfg);
+      if (err) { Sound.play('bad'); toast(err); return; }
       Sound.play('good'); buzz(30);
-      const optOnly = {}; (spec.options || []).forEach((o) => { optOnly[o.key] = cfg[o.key]; });
-      Store.set('opt:' + g.id, optOnly);
-      if (spec.setup === 'teams') cfg.teams = setup.value();
-      if (spec.setup === 'players') cfg.players = setup.value();
+      if (!pre) { const optOnly = {}; (spec.options || []).forEach((o) => { optOnly[o.key] = cfg[o.key]; }); Store.set('opt:' + g.id, optOnly); }
       ctx.dirty = true;
       spec.onStart(cfg);
     };
     ctx.view(
+      pre ? h('p.center', h('span.pill.gold', pre.kicker)) : null,
       h('div.intro-hero', h('span.e', { 'aria-hidden': 'true' }, g.emoji), h('h1', g.name), h('p', g.tagline)),
       h('div.card', h('h3', 'كيف نلعب؟'), h('ol.steps', g.how.map((s) => h('li', s)))),
+      pre && pre.note ? h('div.note', h('b', 'في البطولة: '), pre.note) : null,
       setup || fields.length ? h('div.card', setup ? setup.el : null, fields) : null,
       h('div.sticky-cta', h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick: go }, spec.startLabel || 'ابدأ اللعب'))
     );
   }
 
   function results(ctx, spec) {
+    if (ctx.onResults) return ctx.onResults(spec);
     ctx.dirty = false;
     const rows = spec.rows.slice().sort((a, b) => b.score - a.score);
     const top = rows[0];
@@ -527,7 +539,7 @@
     if (g) mountGame(app, g);
     else {
       mountHome(app);
-      if (id === 'games' || id === 'science') { const t = document.getElementById(id); t && t.scrollIntoView(); }
+      if (id === 'games') { const t = document.getElementById(id); t && t.scrollIntoView(); }
     }
   }
 
