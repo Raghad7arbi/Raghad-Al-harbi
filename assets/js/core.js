@@ -372,6 +372,11 @@
       h('span', h('b', 'أسئلة العائلة'), ownCount ? `عندكم ${ownCount} من أسئلتكم وسوالفكم في الألعاب.` : 'اكتبوا أسئلتكم وسوالفكم الخاصة وتدخل في الألعاب.'),
       h('span.go', ownCount ? 'عدّلوا' : 'اكتبوا')) : null;
 
+    const onlineLink = SH.online && SH.online.available() && SH.games.some((g) => g.id === 'online') ? h('a.mine-link', { href: '#online', style: { marginBottom: '12px' }, onclick() { Sound.play('pop'); } },
+      h('span.e', { 'aria-hidden': 'true' }, '🌐'),
+      h('span', h('b', 'العبوا أونلاين'), 'كل واحد يدخل من جواله برمز الغرفة.'),
+      h('span.go', 'ادخلوا')) : null;
+
     const themeB = h('button.icon-btn', { type: 'button', 'aria-label': 'تبديل الوضع الليلي والنهاري', onclick() { setTheme(currentTheme() === 'dark' ? 'light' : 'dark'); themeB.textContent = currentTheme() === 'dark' ? '☀️' : '🌙'; Sound.play('pop'); } }, currentTheme() === 'dark' ? '☀️' : '🌙');
 
     app.replaceChildren(
@@ -392,7 +397,7 @@
       h('div.sadu', { role: 'presentation' }),
       h('main',
         h('section.section.wrap', { id: 'games' },
-          tourBanner, mineLink,
+          tourBanner, onlineLink, mineLink,
           h('div.section-head', h('h2', 'مكتبة الألعاب'), h('p', 'اختاروا على مزاج الجلسة')),
           chips, grid)),
       h('div.sadu', { role: 'presentation' }),
