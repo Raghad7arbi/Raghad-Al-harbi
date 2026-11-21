@@ -1,4 +1,4 @@
-/* بطولة السهرة — نفس الفرق تلعب عدة ألعاب والنقاط تتجمّع لين التتويج */
+/* بطولة السهرة (واسمها «بطولة العصرية» في الوضع النهاري) — نفس الفرق تلعب عدة ألعاب والنقاط تتجمّع لين التتويج */
 (function () {
   'use strict';
   const { h, Sound, Store } = SH;
@@ -23,7 +23,8 @@
   const golden = (t, i) => t.games.length > 1 && i === t.games.length - 1;
 
   const TOUR = {
-    id: 'tour', hidden: true, name: 'بطولة السهرة', emoji: '🏆', color: 'night', moods: [],
+    id: 'tour', hidden: true, name: 'بطولة السهرة', emoji: '🏆', color: 'tour', moods: [],
+    nameEl: () => SH.dayNight('بطولة العصرية', 'بطولة السهرة'),
     tagline: 'اختاروا ألعابكم، والنقاط تتجمّع من لعبة للعبة لين التتويج.',
     leaveMsg: 'تطلعون من البطولة؟ الترتيب محفوظ وتقدرون تكمّلونها بعدين.',
     how: [
@@ -146,7 +147,7 @@
     save(null);
     ctx.results({
       rows: t.teams.map((x) => ({ name: x.name, color: x.color, score: x.total })),
-      award: (w, tie) => (tie ? 'أبطال السهرة مع بعض 🏆' : 'أبطال السهرة 🏆'),
+      award: (w, tie) => SH.dayNight(tie ? 'أبطال العصرية مع بعض 🏆' : 'أبطال العصرية 🏆', tie ? 'أبطال السهرة مع بعض 🏆' : 'أبطال السهرة 🏆'),
       extra: schedule(Object.assign({}, t, { idx: -1 })),
     });
   }

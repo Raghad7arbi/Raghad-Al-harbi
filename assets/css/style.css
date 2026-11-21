@@ -50,6 +50,9 @@
   --dune2: #2E3486;
   --dune3: #171A45;
   --moon: #FFF1C2;
+  --tour-g: #2B2550; --tour-g2: #120F29; --tour-ink: #FFF6E6; --tour-hi: #FFC83D; --tour-ring: #FFC83D;
+  --tour-btn: #FFC83D; --tour-btn-ink: #33230A; --tour-btn-sh: #C98F0A;
+  --show-day: none; --show-night: inline;
 
   /* ألوان ثابتة في الثيمين */
   --fire: #FF8A1F;
@@ -76,6 +79,9 @@
     --ink: #1B1730; --muted: #615A78; --line: rgba(27, 23, 48, .14); --shadow: rgba(92, 62, 20, .28);
     --accent: #B4500A; --glow1: rgba(255, 176, 46, .35); --glow2: rgba(216, 52, 59, .10);
     --star: rgba(180, 80, 10, .0); --dune1: #E9C98C; --dune2: #DDB56E; --dune3: #F1D9A8; --moon: #FF9D2E;
+    --tour-g: #FFC83D; --tour-g2: #D29A0C; --tour-ink: #33230A; --tour-hi: #1B1730; --tour-ring: transparent;
+    --tour-btn: #1B1730; --tour-btn-ink: #FFF6E6; --tour-btn-sh: #000;
+    --show-day: inline; --show-night: none;
   }
 }
 :root[data-theme="light"] {
@@ -84,6 +90,9 @@
   --ink: #1B1730; --muted: #615A78; --line: rgba(27, 23, 48, .14); --shadow: rgba(92, 62, 20, .28);
   --accent: #B4500A; --glow1: rgba(255, 176, 46, .35); --glow2: rgba(216, 52, 59, .10);
   --star: rgba(180, 80, 10, .0); --dune1: #E9C98C; --dune2: #DDB56E; --dune3: #F1D9A8; --moon: #FF9D2E;
+    --tour-g: #FFC83D; --tour-g2: #D29A0C; --tour-ink: #33230A; --tour-hi: #1B1730; --tour-ring: transparent;
+    --tour-btn: #1B1730; --tour-btn-ink: #FFF6E6; --tour-btn-sh: #000;
+    --show-day: inline; --show-night: none;
 }
 
 /* صبغات البُسط (لكل لعبة لونها) */
@@ -97,10 +106,15 @@
 .dye-night  { --g: #2B2550; --g2: #120F29; --g-ink: #FFF6E6; }
 .dye-teal   { --g: #17B5B0; --g2: #0D8581; --g-ink: #05282A; }
 .dye-sky    { --g: #2F74E8; --g2: #1C52B4; --g-ink: #FFFFFF; }
+.dye-tour   { --g: var(--tour-g); --g2: var(--tour-g2); --g-ink: var(--tour-ink); }
 /* الصبغة الليلية غامقة، فعناصر التحكم فيها ذهبية عشان تبان */
-.dye-night .btn-primary { background: var(--gold); color: #33230A; --sh: var(--gold2); }
-.dye-night .seg button[aria-pressed="true"], .dye-night .steps li::before { background: var(--gold); color: #33230A; }
-.dye-night .name-row input:focus { border-color: var(--gold); }
+.dye-night .btn-primary, .dye-tour .btn-primary { background: var(--gold); color: #33230A; --sh: var(--gold2); }
+.dye-night .seg button[aria-pressed="true"], .dye-night .steps li::before,
+.dye-tour .seg button[aria-pressed="true"], .dye-tour .steps li::before { background: var(--gold); color: #33230A; }
+.dye-night .name-row input:focus, .dye-tour .name-row input:focus { border-color: var(--gold); }
+/* نص يتبدّل حسب الوضع (مثل اسم البطولة) */
+.when-day { display: var(--show-day); }
+.when-night { display: var(--show-night); }
 
 /* ---------- الأساس ---------- */
 *, *::before, *::after { box-sizing: border-box; }
@@ -281,8 +295,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 /* بانر البطولة */
 .tour-banner {
   position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; margin-bottom: 26px; padding: 30px 18px;
-  border-radius: 26px; background: var(--night); color: var(--cream); text-decoration: none;
-  box-shadow: inset 0 0 0 2px var(--gold), 0 6px 0 #0a0818, 0 20px 28px -16px var(--shadow);
+  border-radius: 26px; background: linear-gradient(135deg, color-mix(in srgb, var(--tour-g) 86%, #fff), var(--tour-g)); color: var(--tour-ink); text-decoration: none;
+  box-shadow: inset 0 0 0 2px var(--tour-ring), 0 6px 0 var(--tour-g2), 0 20px 28px -16px var(--shadow);
   transition: transform .16s cubic-bezier(.2, .9, .3, 1.3);
 }
 .tour-banner::before, .tour-banner::after { content: ""; position: absolute; inset: 0 0 auto; height: 14px; background: var(--sadu) repeat-x center / auto 100%; }
@@ -291,8 +305,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tour-banner:active { transform: translateY(4px); }
 .tb-e { font-size: 54px; line-height: 1.1; flex: none; filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .3)); animation: bob 2.4s ease-in-out infinite; }
 .tb-t { flex: 1; min-width: 0; display: grid; gap: 2px; font-size: 14.5px; line-height: 1.6; }
-.tb-t b { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 7vw, 38px); line-height: 1.2; color: var(--gold); }
-.tb-go { flex: none; padding: 10px 18px; border-radius: 16px; background: var(--gold); color: #33230A; font-weight: 700; box-shadow: 0 4px 0 var(--gold2); }
+.tb-t b { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 7vw, 38px); line-height: 1.2; color: var(--tour-hi); }
+.tb-go { flex: none; padding: 10px 18px; border-radius: 16px; background: var(--tour-btn); color: var(--tour-btn-ink); font-weight: 700; box-shadow: 0 4px 0 var(--tour-btn-sh); }
 @media (max-width: 460px) { .tour-banner { flex-wrap: wrap; } .tb-go { flex: 1 1 100%; text-align: center; } }
 
 .foot { padding-block: 26px 40px; color: var(--muted); font-size: 14px; text-align: center; }

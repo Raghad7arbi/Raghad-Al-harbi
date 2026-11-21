@@ -184,6 +184,10 @@
   const PALETTE = ['#D8343B', '#2F74E8', '#12996A', '#E0880A', '#7A5CF0', '#D9488B', '#0FA3A0', '#B4530A', '#5B6CFF', '#8A9A1F', '#C0392B', '#3D8B6E'];
   const TEAM_NAMES = ['الصقور', 'النشامى', 'الفرسان', 'الذيابة'];
 
+  /* نص له صيغتين: واحدة للوضع النهاري وواحدة لليلي، والتبديل بالـCSS فيتبع الثيم تلقائياً */
+  const dayNight = (day, night) => h('span', h('span.when-day', day), h('span.when-night', night));
+  const gname = (g) => (g.nameEl ? g.nameEl() : g.name);
+
   function seg(choices, value, onChange, multi) {
     const el = h('div.seg', { role: 'group' });
     const isOn = (v) => (multi ? value.includes(v) : value === v);
@@ -354,7 +358,7 @@
     const live = !!(saved && Array.isArray(saved.games) && saved.idx > 0 && saved.idx < saved.games.length);
     const tourBanner = SH.games.some((g) => g.id === 'tour') ? h('a.tour-banner', { href: '#tour', onclick() { Sound.play('pop'); } },
       h('span.tb-e', { 'aria-hidden': 'true' }, '🏆'),
-      h('span.tb-t', h('b', 'بطولة السهرة'), h('span', live ? `بطولتكم واقفة عند اللعبة ${saved.idx + 1} من ${saved.games.length}. كمّلوها!` : 'اختاروا ألعابكم، والنقاط تتجمّع من لعبة للعبة لين التتويج.')),
+      h('span.tb-t', h('b', dayNight('بطولة العصرية', 'بطولة السهرة')), h('span', live ? `بطولتكم واقفة عند اللعبة ${saved.idx + 1} من ${saved.games.length}. كمّلوها!` : 'اختاروا ألعابكم، والنقاط تتجمّع من لعبة للعبة لين التتويج.')),
       h('span.tb-go', live ? 'كمّلوا' : 'ابدأوا')) : null;
 
     const themeB = h('button.icon-btn', { type: 'button', 'aria-label': 'تبديل الوضع الليلي والنهاري', onclick() { setTheme(currentTheme() === 'dark' ? 'light' : 'dark'); themeB.textContent = currentTheme() === 'dark' ? '☀️' : '🌙'; Sound.play('pop'); } }, currentTheme() === 'dark' ? '☀️' : '🌙');
@@ -424,12 +428,12 @@
     let shown = g;
     const title = h('div.title');
     const shell = h('div.game');
-    ctx.setGame = (x) => { shown = x; shell.className = 'game dye-' + x.color; title.replaceChildren(h('span', { 'aria-hidden': 'true' }, x.emoji), x.name); };
+    ctx.setGame = (x) => { shown = x; shell.className = 'game dye-' + x.color; title.replaceChildren(h('span', { 'aria-hidden': 'true' }, x.emoji), gname(x)); };
     ctx.setGame(g);
 
     const help = () => {
       const m = modal([
-        h('h3', shown.emoji + ' ' + shown.name),
+        h('h3', shown.emoji + ' ', gname(shown)),
         h('ol.steps.dye-' + shown.color, shown.how.map((s) => h('li', s))),
         h('button.btn.btn-gold.btn-block', { onclick() { m.close(); } }, 'فهمت'),
       ]);
@@ -485,7 +489,7 @@
     };
     ctx.view(
       pre ? h('p.center', h('span.pill.gold', pre.kicker)) : null,
-      h('div.intro-hero', h('span.e', { 'aria-hidden': 'true' }, g.emoji), h('h1', g.name), h('p', g.tagline)),
+      h('div.intro-hero', h('span.e', { 'aria-hidden': 'true' }, g.emoji), h('h1', gname(g)), h('p', g.tagline)),
       h('div.card', h('h3', 'كيف نلعب؟'), h('ol.steps', g.how.map((s) => h('li', s)))),
       pre && pre.note ? h('div.note', h('b', 'في البطولة: '), pre.note) : null,
       setup || fields.length ? h('div.card', setup ? setup.el : null, fields) : null,
@@ -552,5 +556,5 @@
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
   };
 
-  Object.assign(SH, { h, rnd, pick, shuffle, clamp, Store, deck, Sound, buzz, confetti, toast, modal, confirm: confirmBox, seg, timer, scorebar, countdown, PALETTE, add(g) { SH.games.push(g); } });
+  Object.assign(SH, { dayNight, h, rnd, pick, shuffle, clamp, Store, deck, Sound, buzz, confetti, toast, modal, confirm: confirmBox, seg, timer, scorebar, countdown, PALETTE, add(g) { SH.games.push(g); } });
 })();
