@@ -127,6 +127,8 @@
   /* ---------- دوّر الدلّة ---------- */
   const TOP = '<svg viewBox="0 0 200 200" aria-hidden="true"><defs><radialGradient id="dtop" cx=".38" cy=".34"><stop offset="0" stop-color="#FFEDB0"/><stop offset=".6" stop-color="#FFB02E"/><stop offset="1" stop-color="#B56A06"/></radialGradient></defs><path d="M82 142c-8 34 44 34 36 0" fill="none" stroke="#B56A06" stroke-width="11" stroke-linecap="round"/><path d="M83 66C89 44 95 26 100 5c5 21 11 39 17 61z" fill="#FFC83D" stroke="#B56A06" stroke-width="3" stroke-linejoin="round"/><circle cx="100" cy="100" r="46" fill="url(#dtop)" stroke="#B56A06" stroke-width="3"/><circle cx="100" cy="100" r="31" fill="none" stroke="#B56A06" stroke-width="3" opacity=".55"/><circle cx="100" cy="100" r="19" fill="#FFD25E" stroke="#B56A06" stroke-width="3"/><circle cx="100" cy="100" r="7" fill="#B56A06"/></svg>';
 
+  SH.DALLAH_TOP = TOP;   /* نفس رسمة الدلّة تُستخدم في اللعب أونلاين */
+
   function dallah(ctx, cfg) {
     const players = cfg.players;
     const n = players.length;

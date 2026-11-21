@@ -630,6 +630,19 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 /* اللعب أونلاين */
 .room-code { font-family: var(--font-display); font-size: clamp(64px, 20vw, 104px); line-height: 1.15; letter-spacing: .08em; direction: ltr; color: var(--accent); }
 .pickt[disabled] { opacity: .45; pointer-events: none; }
+.opt.sel { box-shadow: 0 0 0 3px var(--gold), 0 4px 0 color-mix(in srgb, var(--surface) 55%, #000); }
+.lt-row { display: grid; grid-template-columns: 6.2em 1fr; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
+.lt-row .inp { min-height: 46px; }
+.list button { display: flex; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 14px; background: var(--surface2); font-weight: 600; }
+.tapzone {
+  flex: 1; min-height: 300px; width: 100%; border-radius: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: var(--g); color: var(--g-ink); box-shadow: 0 7px 0 var(--g2); touch-action: manipulation; user-select: none; -webkit-user-select: none;
+}
+.tapzone:active { transform: translateY(4px); box-shadow: 0 3px 0 var(--g2); }
+.tapzone .sym { font-size: clamp(100px, 34vw, 170px); line-height: 1.15; min-height: 1.2em; }
+.tapzone .msg { font-weight: 700; font-size: 18px; }
+.tapzone.hit { background: var(--ok); color: #06281A; box-shadow: 0 7px 0 var(--ok2); }
+.tapzone.miss { background: var(--bad); color: #3A0610; box-shadow: 0 7px 0 var(--bad2); }
 
 /* أسئلة العائلة */
 .inp { width: 100%; min-height: 50px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg); font-weight: 600; font-size: 16px; }
