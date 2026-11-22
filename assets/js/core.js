@@ -366,6 +366,11 @@
       h('span.tb-t', h('b', dayNight('بطولة العصرية', 'بطولة السهرة')), h('span', live ? `بطولتكم واقفة عند اللعبة ${saved.idx + 1} من ${saved.games.length}. كمّلوها!` : 'اختاروا ألعابكم، والنقاط تتجمّع من لعبة للعبة لين التتويج.')),
       h('span.tb-go', live ? 'كمّلوا' : 'ابدأوا')) : null;
 
+    const haflaBanner = SH.online && SH.online.available() && SH.games.some((g) => g.id === 'hafla') ? h('a.hafla-banner', { href: '#hafla', onclick() { Sound.play('pop'); } },
+      h('span.hb-e', { 'aria-hidden': 'true' }, '🎉'),
+      h('span.hb-t', h('b', 'حفلتكم على شبّة'), h('span', 'توديع عزوبية، بيبي شاور، عيد ميلاد: حطّوا صورها وجاوبوا عن أسئلتها، والضيوف يلعبون فقرات كلها عنها.')),
+      h('span.hb-go', 'جهّزوها')) : null;
+
     const own = mine(), ownCount = own.trivia.length + own.whois.length + own.truth.length + own.dare.length;
     const mineLink = SH.games.some((g) => g.id === 'mine') ? h('a.mine-link', { href: '#mine', onclick() { Sound.play('pop'); } },
       h('span.e', { 'aria-hidden': 'true' }, '🏠'),
@@ -397,7 +402,7 @@
       h('div.sadu', { role: 'presentation' }),
       h('main',
         h('section.section.wrap', { id: 'games' },
-          tourBanner, onlineLink, mineLink,
+          tourBanner, haflaBanner, onlineLink, mineLink,
           h('div.section-head', h('h2', 'مكتبة الألعاب'), h('p', 'اختاروا على مزاج الجلسة')),
           chips, grid)),
       h('div.sadu', { role: 'presentation' }),

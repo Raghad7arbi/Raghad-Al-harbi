@@ -165,7 +165,8 @@
       const ids = R.hereIds();
       if (ids.length < 2) { SH.toast('«دوّر الدلّة» تحتاج لاعبين على الأقل'); return; }
       const mine = SH.mine();
-      await R.keep({ t: shuffle(mine.truth).concat(shuffle(SH.TRUTH)).slice(0, 40), d: shuffle(mine.dare).concat(shuffle(SH.DARE)).slice(0, 40) });
+      const ex = (k) => (R.party && SH.hafla ? SH.hafla.extra(R.party, k) : []);
+      await R.keep({ t: shuffle(ex('truth').concat(mine.truth)).concat(shuffle(SH.TRUTH)).slice(0, 40), d: shuffle(ex('dare').concat(mine.dare)).concat(shuffle(SH.DARE)).slice(0, 40) });
       await dallah.spin(R, { who: ids, ti: 0, di: 0, turns: null }, null);
     },
     async spin(R, base, last) {

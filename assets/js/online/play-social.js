@@ -86,61 +86,76 @@
   };
   SH.onlineGame(outsider);
 
-  /* ---------- كم تتوقع؟ ---------- */
-  const guess = {
-    id: 'guess', emoji: '🎯', name: 'كم تتوقع؟', desc: 'الكل يكتب توقّعه بنفس اللحظة', min: 2,
-    async start(R) {
-      const ids = R.hereIds();
-      if (ids.length < 2) { SH.toast('«كم تتوقع؟» تحتاج لاعبين على الأقل'); return; }
-      const qs = shuffle(SH.GUESS).slice(0, 5);
-      await R.keep({ qs });
-      await R.put({ game: 'guess', step: 'ask', who: ids, i: 0, total: qs.length, q: [qs[0][0], qs[0][2]], got: 0 });
-    },
-    async reveal(R) {
-      const s = R.state, g = R.got(), ans = R.priv.qs[s.i][1];
-      const rows = Object.keys(g).map((id) => ({ id, d: Math.abs(g[id] - ans) })).sort((a, b) => a.d - b.d);
-      const gains = {}, scores = Object.assign({}, s.scores || {});
-      if (rows.length) {
-        const best = rows[0].d, second = rows.find((r) => r.d > best);
-        rows.forEach((r) => { const pts = r.d === best ? 3 + (r.d === 0 ? 2 : 0) : rows.length >= 3 && second && r.d === second.d ? 1 : 0; if (pts) { gains[r.id] = pts; scores[r.id] = (scores[r.id] || 0) + pts; } });
-      }
-      await R.step({ step: 'reveal', answer: ans, guesses: g, gains, scores, got: 0 });
-    },
-    async next(R) {
-      const s = R.state, i = s.i + 1, qs = R.priv.qs;
-      if (i >= s.total) return R.put({ game: 'guess', step: 'end', who: s.who, scores: s.scores || null });
-      await R.put({ game: 'guess', step: 'ask', who: s.who, i, total: s.total, q: [qs[i][0], qs[i][2]], got: 0, scores: s.scores || null });
-    },
-    auto: { ask(R) { if (!R.priv) return; if (R.allIn()) R.act(() => guess.reveal(R)); else R.syncGot(); } },
-    view(R) {
-      const s = R.state, ui = R.ui;
-      if (s.step === 'ask') {
-        const head = [h('div.hud', h('span.pill', `سؤال ${s.i + 1} من ${s.total}`)), h('div.prompt', { style: { minHeight: '0' } }, s.q[1] ? h('span.tag', 'الجواب بوحدة: ' + s.q[1]) : null, s.q[0])];
-        if (ui.sent != null) return head.concat([h('div.pass', h('p.eyebrow', 'توقّعك'), h('div.huge', { style: { direction: 'ltr' } }, fmt(ui.sent)), R.waiting('ننتظر الباقين')), R.hostBtn('اكشف الحين', () => guess.reveal(R), '.btn-ghost')]);
-        const num = h('span', ui.val ? fmt(Number(ui.val)) : '؟');
-        const press = (d) => { ui.val = ui.val || ''; if (ui.val.length < 7) { ui.val = ui.val === '0' ? d : ui.val + d; Sound.play('tap'); num.textContent = fmt(Number(ui.val)); } };
-        return head.concat([
-          h('div.kp-screen', num, s.q[1] ? h('small', s.q[1]) : null),
-          h('div.kp', ['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => h('button', { type: 'button', onclick() { press(d); } }, d)),
-            h('button', { type: 'button', 'aria-label': 'مسح', onclick() { ui.val = (ui.val || '').slice(0, -1); Sound.play('tap'); num.textContent = ui.val ? fmt(Number(ui.val)) : '؟'; } }, '⌫'),
-            h('button', { type: 'button', onclick() { press('0'); } }, '0'),
-            h('button.go', { type: 'button', 'aria-label': 'اعتماد', onclick() { if (!ui.val) { SH.toast('اكتبوا رقم أول'); return; } R.send(Number(ui.val)); } }, '✓')),
-        ]);
-      }
-      if (s.step === 'reveal') {
-        const g = s.guesses || {}, gains = s.gains || {};
-        const rows = Object.keys(g).map((id) => ({ id, v: g[id], d: Math.abs(g[id] - s.answer) })).sort((a, b) => a.d - b.d);
-        return [
-          h('div.center', h('p.muted', s.q[0]), h('p.eyebrow', 'الجواب الصحيح'), h('div.huge', { style: { color: 'var(--accent)', direction: 'ltr' } }, fmt(s.answer)), s.q[1] ? h('p.label', s.q[1]) : null),
-          h('div', { style: { display: 'grid', gap: '8px' } }, rows.map((r, i) => h('div.guess-row' + (gains[r.id] >= 3 ? '.win' : ''), { style: { '--i': i } },
-            h('span.n', R.nameOf(r.id), h('small', r.d === 0 ? ' · بالضبط! 🎯' : ` · الفرق ${fmt(r.d)}`)), h('span.v', fmt(r.v)), gains[r.id] ? h('span.pill.gold', '+' + gains[r.id]) : null))),
-          h('div.spacer'), R.hostBtn(s.i + 1 < s.total ? 'السؤال التالي' : 'النتيجة', () => guess.next(R)),
-        ];
-      }
-      return [h('div.center', h('span', { style: { fontSize: '70px', lineHeight: '1.2' } }, '🏆'), h('div.big', 'النتيجة')), R.board(s.scores), h('div.spacer'), R.endButtons(() => guess.start(R))];
-    },
-  };
-  SH.onlineGame(guess);
+  /* ---------- كم تتوقع؟ ----------
+     محرك عام لأسئلة الأرقام: الكل يكتب رقمه، والأقرب ياخذ النقاط.
+     def.make(R) ترجّع [{ t: السؤال, a: الجواب, u: الوحدة, p: رقم صورة من صور الحفلة }] */
+  function numbers(def) {
+    const pub = (q) => ({ t: q.t, u: q.u || '', p: q.p == null ? null : q.p });
+    const photo = (R, q, cls) => (q.p != null && R.photos[q.p] ? h('img.q-photo' + (cls || ''), { src: R.photos[q.p], alt: 'صورة من الحفلة' }) : null);
+    const g = {
+      id: def.id, emoji: def.emoji, name: def.name, desc: def.desc, min: 2,
+      party: def.party, types: def.types, title: def.title, pdesc: def.pdesc, ready: def.ready, watch: !!def.party,
+      async start(R) {
+        const ids = def.who ? def.who(R) : R.hereIds();
+        if (ids.length < 2) { SH.toast(`«${R.label(g)}» تحتاج لاعبين على الأقل` + (def.who ? ' غير صاحبة الحفلة' : '')); return; }
+        const qs = def.make(R);
+        if (!qs.length) { SH.toast('ما فيه أسئلة كفاية لهالفقرة'); return; }
+        await R.keep({ qs });
+        await R.put({ game: def.id, step: 'ask', who: ids, i: 0, total: qs.length, q: pub(qs[0]), got: 0 });
+      },
+      async reveal(R) {
+        const s = R.state, got = R.got(), ans = R.priv.qs[s.i].a;
+        const rows = Object.keys(got).map((id) => ({ id, d: Math.abs(got[id] - ans) })).sort((x, y) => x.d - y.d);
+        const gains = {}, scores = Object.assign({}, s.scores || {});
+        if (rows.length) {
+          const best = rows[0].d, second = rows.find((r) => r.d > best);
+          rows.forEach((r) => { const pts = r.d === best ? 3 + (r.d === 0 ? 2 : 0) : rows.length >= 3 && second && r.d === second.d ? 1 : 0; if (pts) { gains[r.id] = pts; scores[r.id] = (scores[r.id] || 0) + pts; } });
+        }
+        await R.step({ step: 'reveal', answer: ans, guesses: got, gains, scores, got: 0 });
+      },
+      async next(R) {
+        const s = R.state, i = s.i + 1, qs = R.priv.qs;
+        if (i >= s.total) return R.put({ game: def.id, step: 'end', who: s.who, scores: s.scores || null });
+        await R.put({ game: def.id, step: 'ask', who: s.who, i, total: s.total, q: pub(qs[i]), got: 0, scores: s.scores || null });
+      },
+      auto: { ask(R) { if (!R.priv) return; if (R.allIn()) R.act(() => g.reveal(R)); else R.syncGot(); } },
+      view(R) {
+        const s = R.state, ui = R.ui, q = s.q || {};
+        if (s.step === 'ask') {
+          const head = [h('div.hud', h('span.pill', `سؤال ${s.i + 1} من ${s.total}`)), photo(R, q), h('div.prompt', { style: { minHeight: '0' } }, q.u ? h('span.tag', 'الجواب بوحدة: ' + q.u) : null, q.t)];
+          if (!s.who.includes(R.me)) return head.concat([h('p.muted.center', def.specHint ? def.specHint(R) : 'تتفرّجون هالجولة.'), R.waiting('جاوبوا')]);
+          if (ui.sent != null) return head.concat([h('div.pass', h('p.eyebrow', 'توقّعك'), h('div.huge', { style: { direction: 'ltr' } }, fmt(ui.sent)), R.waiting('ننتظر الباقين')), R.hostBtn('اكشف الحين', () => g.reveal(R), '.btn-ghost')]);
+          const num = h('span', ui.val ? fmt(Number(ui.val)) : '؟');
+          const press = (d) => { ui.val = ui.val || ''; if (ui.val.length < 7) { ui.val = ui.val === '0' ? d : ui.val + d; Sound.play('tap'); num.textContent = fmt(Number(ui.val)); } };
+          return head.concat([
+            h('div.kp-screen', num, q.u ? h('small', q.u) : null),
+            h('div.kp', ['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => h('button', { type: 'button', onclick() { press(d); } }, d)),
+              h('button', { type: 'button', 'aria-label': 'مسح', onclick() { ui.val = (ui.val || '').slice(0, -1); Sound.play('tap'); num.textContent = ui.val ? fmt(Number(ui.val)) : '؟'; } }, '⌫'),
+              h('button', { type: 'button', onclick() { press('0'); } }, '0'),
+              h('button.go', { type: 'button', 'aria-label': 'اعتماد', onclick() { if (!ui.val) { SH.toast('اكتبوا رقم أول'); return; } R.send(Number(ui.val)); } }, '✓')),
+          ]);
+        }
+        if (s.step === 'reveal') {
+          const got = s.guesses || {}, gains = s.gains || {};
+          const rows = Object.keys(got).map((id) => ({ id, v: got[id], d: Math.abs(got[id] - s.answer) })).sort((x, y) => x.d - y.d);
+          return [
+            photo(R, q, '.sm'),
+            h('div.center', h('p.muted', q.t), h('p.eyebrow', 'الجواب الصحيح'), h('div.huge', { style: { color: 'var(--accent)', direction: 'ltr' } }, fmt(s.answer)), q.u ? h('p.label', q.u) : null),
+            h('div', { style: { display: 'grid', gap: '8px' } }, rows.map((r, i) => h('div.guess-row' + (gains[r.id] >= 3 ? '.win' : ''), { style: { '--i': i } },
+              h('span.n', R.nameOf(r.id), h('small', r.d === 0 ? ' · بالضبط! 🎯' : ` · الفرق ${fmt(r.d)}`)), h('span.v', fmt(r.v)), gains[r.id] ? h('span.pill.gold', '+' + gains[r.id]) : null))),
+            h('div.spacer'), R.hostBtn(s.i + 1 < s.total ? 'السؤال التالي' : 'النتيجة', () => g.next(R)),
+          ];
+        }
+        return [h('div.center', h('span', { style: { fontSize: '70px', lineHeight: '1.2' } }, '🏆'), h('div.big', 'النتيجة')), R.board(s.scores), h('div.spacer'), R.endButtons(() => g.start(R))];
+      },
+    };
+    SH.onlineGame(g);
+  }
+  SH.onlineNumbers = numbers;
+  numbers({
+    id: 'guess', emoji: '🎯', name: 'كم تتوقع؟', desc: 'الكل يكتب توقّعه بنفس اللحظة',
+    make: () => shuffle(SH.GUESS).slice(0, 5).map((x) => ({ t: x[0], a: x[1], u: x[2] })),
+  });
 
   /* ---------- مين فينا؟ ---------- */
   const whois = {
@@ -148,26 +163,28 @@
     async start(R) {
       const ids = R.hereIds();
       if (ids.length < 3) { SH.toast('«مين فينا؟» تحتاج 3 لاعبين على الأقل'); return; }
-      const own = shuffle(SH.mine().whois), pool = shuffle(SH.WHOIS), texts = [];
-      for (let i = 0; i < 8; i++) texts.push(own.length && i % 2 === 0 ? own.pop() : pool.pop());
-      await R.keep({ texts });
-      await R.put({ game: 'whois', step: 'ask', who: ids, i: 0, total: texts.length, text: texts[0], got: 0 });
+      const themed = R.party && SH.hafla ? shuffle(SH.hafla.extra(R.party, 'whois')) : [];
+      const own = shuffle(SH.mine().whois), pool = shuffle(SH.WHOIS), texts = themed.slice(0, 8);
+      for (let i = 0; texts.length < 8; i++) texts.push(own.length && i % 2 === 0 ? own.pop() : pool.pop());
+      /* سوالف الحفلة مكتوبة كجملة كاملة بعد «مين فينا»، والباقي بعد «أكثر واحد» */
+      await R.keep({ texts, themed: themed.length });
+      await R.put({ game: 'whois', step: 'ask', who: ids, i: 0, total: texts.length, text: texts[0], full: themed.length > 0, got: 0 });
     },
     async reveal(R) {
       const s = R.state, counts = tally(R.got()), top = tops(counts);
       const scores = Object.assign({}, s.scores || {}), titles = Object.assign({}, s.titles || {});
-      if (top.length === 1) { scores[top[0]] = (scores[top[0]] || 0) + 1; titles[top[0]] = s.text; }
+      if (top.length === 1) { scores[top[0]] = (scores[top[0]] || 0) + 1; titles[top[0]] = (s.full ? '' : 'اللي ') + s.text; }
       await R.step({ step: 'reveal', counts, top, scores, titles, got: 0 });
     },
     async next(R) {
       const s = R.state, i = s.i + 1, keep = { who: s.who, scores: s.scores || null, titles: s.titles || null };
       if (i >= s.total) return R.put(Object.assign({ game: 'whois', step: 'end' }, keep));
-      await R.put(Object.assign({ game: 'whois', step: 'ask', i, total: s.total, text: R.priv.texts[i], got: 0 }, keep));
+      await R.put(Object.assign({ game: 'whois', step: 'ask', i, total: s.total, text: R.priv.texts[i], full: i < (R.priv.themed || 0), got: 0 }, keep));
     },
     auto: { ask(R) { if (R.allIn()) R.act(() => whois.reveal(R)); else R.syncGot(); } },
     view(R) {
       const s = R.state, ui = R.ui, name = R.nameOf;
-      const card = h('div.prompt', { style: { minHeight: '0' } }, h('span.tag', 'مين فينا أكثر واحد…'), (s.text || '') + '؟');
+      const card = h('div.prompt', { style: { minHeight: '0' } }, h('span.tag', s.full ? 'مين فينا…' : 'مين فينا أكثر واحد…'), (s.text || '') + '؟');
       const hud = h('div.hud', h('span.pill', `سؤال ${s.i + 1} من ${s.total}`));
       if (s.step === 'ask') {
         return ui.sent
@@ -183,8 +200,7 @@
           })),
           h('div.spacer'), R.hostBtn(s.i + 1 < s.total ? 'السؤال التالي' : 'ألقاب الجلسة', () => whois.next(R))];
       }
-      const titles = {}; Object.keys(s.titles || {}).forEach((id) => { titles[id] = 'اللي ' + s.titles[id]; });
-      return [h('div.center', h('span', { style: { fontSize: '70px', lineHeight: '1.2' } }, '🌟'), h('div.big', 'ألقاب الجلسة')), R.board(s.scores, titles), h('div.spacer'), R.endButtons(() => whois.start(R))];
+      return [h('div.center', h('span', { style: { fontSize: '70px', lineHeight: '1.2' } }, '🌟'), h('div.big', 'ألقاب الجلسة')), R.board(s.scores, s.titles || {}), h('div.spacer'), R.endButtons(() => whois.start(R))];
     },
   };
   SH.onlineGame(whois);

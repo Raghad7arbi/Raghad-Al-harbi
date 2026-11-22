@@ -110,22 +110,26 @@
     try { const cv = await SH.resultCard(d); return await new Promise((res) => cv.toBlob(res, 'image/png')); } catch (e) { return null; }
   };
 
-  SH.share = async function (d, ready) {
-    const blob = ready || (await SH.cardBlob(d));
-    if (!blob) { SH.toast('ما قدرنا نجهّز الصورة على هالجهاز'); return; }
-    const text = `${d.emoji} ${d.game} في شبّة: ${d.headline}`;
+  /* o: { file, text, title, alt } */
+  SH.shareBlob = async function (blob, o) {
     try {
-      const file = new File([blob], 'shabbah.png', { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text }); return; }
+      const file = new File([blob], o.file, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: o.text }); return; }
     } catch (e) { if (e && e.name === 'AbortError') return; }
     const url = URL.createObjectURL(blob);
     const m = SH.modal([
-      h('h3', 'بطاقة النتيجة'),
-      h('img.card-preview', { src: url, alt: 'بطاقة نتيجة ' + d.game }),
+      h('h3', o.title),
+      h('img.card-preview', { src: url, alt: o.alt }),
       h('p.muted.small.center', 'اضغطوا مطوّلاً على الصورة لحفظها، أو نزّلوها من الزر.'),
       h('div.row',
-        h('a.btn.btn-gold', { href: url, download: 'shabbah.png' }, '⬇️ تنزيل الصورة'),
+        h('a.btn.btn-gold', { href: url, download: o.file }, '⬇️ تنزيل الصورة'),
         h('button.btn', { type: 'button', onclick() { m.close(); setTimeout(() => URL.revokeObjectURL(url), 400); } }, 'تم')),
     ]);
+  };
+
+  SH.share = async function (d, ready) {
+    const blob = ready || (await SH.cardBlob(d));
+    if (!blob) { SH.toast('ما قدرنا نجهّز الصورة على هالجهاز'); return; }
+    return SH.shareBlob(blob, { file: 'shabbah.png', text: `${d.emoji} ${d.game} في شبّة: ${d.headline}`, title: 'بطاقة النتيجة', alt: 'بطاقة نتيجة ' + d.game });
   };
 })();

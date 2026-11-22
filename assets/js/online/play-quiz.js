@@ -12,18 +12,21 @@
   };
   const pub = (q) => ({ tag: q.tag, text: q.text, big: q.big, opts: q.opts });
 
-  /* def: { id, emoji, name, desc, total, secs, make(n) => أسئلة، أو cats لاختيار المجال } */
+  /* def: { id, emoji, name, desc, total, secs, make(R, n) => أسئلة، أو cats لاختيار المجال }
+     ولفقرات الحفلة: party, types, title(R), ready(R), who(R) (مين يلعب)، وصاحبة الحفلة تتفرّج */
   function quiz(def) {
     const ask = (R, base, q) => R.put(Object.assign({ game: def.id, step: 'ask', q: pub(q), ends: R.now() + def.secs * 1000, dur: def.secs * 1000, got: 0 }, base));
     const nextChooser = (R, who, from) => { for (let k = 0; k < who.length; k++) { const id = who[(from + k) % who.length]; if (R.isOn(id)) return id; } return who[from % who.length]; };
 
     const g = {
       id: def.id, emoji: def.emoji, name: def.name, desc: def.desc, min: 2,
+      party: def.party, types: def.types, title: def.title, pdesc: def.pdesc, ready: def.ready, watch: !!def.party,
       async start(R) {
-        const ids = R.hereIds();
-        if (ids.length < 2) { SH.toast(`«${def.name}» تحتاج لاعبين على الأقل`); return; }
+        const ids = def.who ? def.who(R) : R.hereIds();
+        if (ids.length < 2) { SH.toast(`«${R.label(g)}» تحتاج لاعبين على الأقل` + (def.who ? ' غير صاحبة الحفلة' : '')); return; }
         if (def.cats) { await R.keep({ used: null }); return R.put({ game: def.id, step: 'pick', who: ids, i: 0, total: def.total, chooser: ids[0], got: 0 }); }
-        const qs = def.make(def.total);
+        const qs = def.make(R, def.total);
+        if (!qs.length) { SH.toast('ما فيه أسئلة كفاية لهالفقرة'); return; }
         await R.keep({ qs });
         await ask(R, { who: ids, i: 0, total: qs.length }, qs[0]);
       },
@@ -72,10 +75,11 @@
         }
         if (s.step === 'ask' || s.step === 'reveal') {
           const q = s.q, done = s.step === 'reveal', my = done ? (s.picks || {})[me] : ui.sent != null ? ui.sent.i : null;
-          const opts = h('div.opts' + (done || ui.sent != null ? '.locked' : ''), q.opts.map((txt, k) => {
+          const spec = !s.who.includes(me);   /* متفرّج: يشوف السؤال والنتيجة بدون ما يجاوب */
+          const opts = h('div.opts' + (done || spec || ui.sent != null ? '.locked' : ''), q.opts.map((txt, k) => {
             let cls = '';
             if (done) cls = k === s.c ? '.right' : k === my ? '.wrong' : '.dim'; else if (my != null) cls = k === my ? '.sel' : '.dim';
-            return h('button.opt' + cls, { type: 'button', onclick() { if (!done && ui.sent == null) R.send({ i: k, t: R.now() }); } }, h('span.k', LETTERS[k]), h('span', txt));
+            return h('button.opt' + cls, { type: 'button', onclick() { if (!done && !spec && ui.sent == null) R.send({ i: k, t: R.now() }); } }, h('span.k', LETTERS[k]), h('span', txt));
           }));
           const head = [
             h('div.hud', h('span.pill', `سؤال ${s.i + 1} من ${s.total}`), done ? null : R.clock(s.ends)),
@@ -83,10 +87,10 @@
             h('div.prompt', { style: { minHeight: '0' } }, q.tag ? h('span.tag', q.tag) : null, q.big ? h('span.emo', q.text) : q.text),
             opts,
           ];
-          if (!done) return head.concat([ui.sent != null ? R.waiting('ننتظر الباقين') : null]);
+          if (!done) return head.concat([spec ? h('p.muted.center', def.specHint ? def.specHint(R) : 'تتفرّجون هالجولة.') : null, ui.sent != null || spec ? R.waiting(spec ? 'جاوبوا' : 'ننتظر الباقين') : null]);
           const gains = s.gains || {}, right = Object.keys(gains).map((id) => R.nameOf(id));
           return head.concat([
-            h('div.note', h('b', gains[me] ? `كفو! +${gains[me]} ` : my == null ? 'ما لحقت تجاوب. ' : 'لا، مو هذي. '), s.note || ''),
+            spec ? (s.note ? h('div.note', s.note) : null) : h('div.note', h('b', gains[me] ? `كفو! +${gains[me]} ` : my == null ? 'ما لحقت تجاوب. ' : 'لا، مو هذي. '), s.note || ''),
             h('p.muted.center.small', right.length ? 'جاوبوا صح: ' + right.join('، ') : 'ولا أحد جاوب صح!'),
             R.board(s.scores), R.hostBtn(s.i + 1 < s.total ? 'السؤال التالي' : 'النتيجة', () => g.next(R)),
           ]);
@@ -96,6 +100,7 @@
     };
     SH.onlineGame(g);
   }
+  SH.onlineQuiz = quiz; SH.onlineMk = mk;
 
   quiz({
     id: 'trivia', emoji: '🧠', name: 'الفطاحلة', desc: 'كل واحد يختار المجال بدوره', total: 8, secs: 20,
@@ -103,15 +108,15 @@
   });
   quiz({
     id: 'proverbs', emoji: '📜', name: 'كمّل المثل', desc: 'الأسرع في تكملة المثل', total: 8, secs: 15,
-    make: (n) => shuffle(SH.PROVERBS).slice(0, n).map((p) => mk('كمّل المثل', p[0], p[1], p.slice(2, 5), `«${p[0].replace('…', '')} ${p[1]}»: ${p[5]}`)),
+    make: (R, n) => shuffle(SH.PROVERBS).slice(0, n).map((p) => mk('كمّل المثل', p[0], p[1], p.slice(2, 5), `«${p[0].replace('…', '')} ${p[1]}»: ${p[5]}`)),
   });
   quiz({
     id: 'dialects', emoji: '🗣️', name: 'وش معناها؟', desc: 'كلمات من لهجات المملكة', total: 8, secs: 15,
-    make: (n) => shuffle(SH.DIALECTS).slice(0, n).map((d) => mk('لهجة ' + d[1], '«' + d[0] + '»', d[2], d.slice(3, 6), `«${d[0]}» تعني: ${d[2]}. ${d[6]}`)),
+    make: (R, n) => shuffle(SH.DIALECTS).slice(0, n).map((d) => mk('لهجة ' + d[1], '«' + d[0] + '»', d[2], d.slice(3, 6), `«${d[0]}» تعني: ${d[2]}. ${d[6]}`)),
   });
   quiz({
     id: 'emoji', emoji: '🧩', name: 'فكّ الإيموجي', desc: 'مين يفكّ اللغز أول؟', total: 8, secs: 20,
-    make: (n) => shuffle(SH.EMOJI).slice(0, n).map((e) => {
+    make: (R, n) => shuffle(SH.EMOJI).slice(0, n).map((e) => {
       const same = shuffle(SH.EMOJI.filter((x) => x !== e && x[2] === e[2])), rest = shuffle(SH.EMOJI.filter((x) => x !== e && x[2] !== e[2]));
       return mk(e[2], e[0], e[1], same.concat(rest).slice(0, 3).map((x) => x[1]), null, true);
     }),
