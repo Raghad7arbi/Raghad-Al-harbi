@@ -1,5 +1,5 @@
 /* شبّة — عامل الخدمة: يخزّن الملفات عشان الموقع يشتغل بدون نت */
-const CACHE = 'shabbah-v8';
+const CACHE = 'shabbah-v9';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest',
   'assets/css/style.css',

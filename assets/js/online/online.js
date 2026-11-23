@@ -99,7 +99,6 @@
     let photos = [], pv = -1, skin = '', away = false, marked = '';
     const mem = {};   /* ذاكرة محلية تبقى بين الخطوات (مثل اللي ينكتب في «إنسان حيوان») */
     const box = h('div.view');
-    ctx.show(box); ctx.dirty = true;
 
     if (key) await net.set(`${base}/pass/${me}`, key).catch(() => {});   /* إثبات إننا دخلنا من رابط الدعوة */
     /* الانضمام (أو الرجوع بنفس المكان) */
@@ -108,6 +107,8 @@
     try {
       await net.set(`${base}/players/${me}`, { name: myName, c: old ? old.c : Object.keys(before).length % PALETTE.length, at: old ? old.at : net.now(), on: true });
     } catch (e) { throw new Error(key ? 'badkey' : 'net'); }
+    /* ما نبدّل الشاشة إلا بعد نجاح الدخول، عشان لو انرفض تبقى شاشة الدخول قدامه */
+    ctx.show(box); ctx.dirty = true;
 
     const list = () => Object.keys(players).map((id) => Object.assign({ id }, players[id])).sort((a, b) => a.at - b.at);
     const here = () => list().filter((p) => p.on !== false);
