@@ -49,7 +49,7 @@
   }
   const joinError = (e) => {
     const m = e && e.message;
-    return m === 'noroom' ? 'ما لقينا غرفة بهذا الرمز' : m === 'nokey' ? 'هذي حفلة خاصة. ادخلوا من رابط الدعوة' : m === 'badkey' ? 'رابط الدعوة مو صحيح. اطلبوا الرابط من جديد' : 'ما قدرنا نتصل. تأكدوا من النت وجرّبوا مرة ثانية';
+    return m === 'noroom' ? 'ما لقينا غرفة بهذا الرمز' : m === 'nokey' ? 'هذي غرفة خاصة. ادخلوا من رابط الدعوة' : m === 'badkey' ? 'رابط الدعوة مو صحيح. اطلبوا الرابط من جديد' : 'ما قدرنا نتصل. تأكدوا من النت وجرّبوا مرة ثانية';
   };
   SH.onlineJoin = join; SH.onlineJoinError = joinError;
 
@@ -75,15 +75,19 @@
       }
     };
     const hero = h('div.intro-hero', h('span.e', { 'aria-hidden': 'true' }, '🌐'), h('h1', 'العبوا أونلاين'), h('p', 'واحد يسوّي غرفة ويرسل رمزها، والباقين يدخلون من جوالاتهم.'));
-    /* رابط دعوة لحفلة: نعرض اسم الحفلة، والدخول بالاسم بس */
+    /* رابط دعوة لحفلة أو فعالية: نعرض اسمها، والدخول بالاسم بس */
+    const enter = h('button.btn.btn-primary.btn-xl.btn-block', { id: 'on-enter', type: 'button', onclick() { go(false); } }, 'ادخلوا الحفلة 🎉');
     if (invited) {
-      hero.replaceChildren(h('span.e', { 'aria-hidden': 'true' }, '🎉'), h('h1', 'حيّاكم في الحفلة'), h('p', 'اكتبوا اسمكم وادخلوا.'));
-      SH.net().then((net) => net.get(`rooms/${room0}/meta`)).then((m) => { if (m && m.party && SH.hafla && hero.isConnected) hero.replaceChildren(...SH.hafla.inviteHero(m.party)); }).catch(() => {});
+      hero.replaceChildren(h('span.e', { 'aria-hidden': 'true' }, '🎉'), h('h1', 'حيّاكم'), h('p', 'اكتبوا اسمكم وادخلوا.'));
+      SH.net().then((net) => net.get(`rooms/${room0}/meta`)).then((m) => {
+        if (!m || !m.party || !SH.hafla || !hero.isConnected) return;
+        hero.replaceChildren(...SH.hafla.inviteHero(m.party)); enter.textContent = `ادخلوا ال${SH.hafla.noun(m.party)} 🎉`;
+      }).catch(() => {});
     }
     ctx.view(
       hero,
       h('div.card', h('div.field', h('span.label', 'الاسم اللي يطلع للباقين'), name)),
-      invited ? h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick() { go(false); } }, 'ادخلوا الحفلة 🎉')
+      invited ? enter
         : [h('div.card', h('div.field', h('span.label', 'عندكم رمز غرفة؟'), code,
           h('button.btn.btn-primary.btn-block', { type: 'button', onclick() { go(false); } }, 'ادخل الغرفة'))),
         h('button.btn.btn-gold.btn-xl.btn-block', { type: 'button', onclick() { go(true); } }, '＋ سوّ غرفة جديدة')],
@@ -142,6 +146,7 @@
     const game = () => (state ? SH.onlineGames.find((g) => g.id === state.game) : null);
     const toLobby = () => put({ game: 'lobby' });
     const label = (g) => (g.title ? g.title(R) : g.name);
+    const nn = () => (party && SH.hafla ? SH.hafla.noun(party) : 'حفلة');   /* «حفلة» أو «فعالية» */
     /* فقرات الحفلة تظهر في غرف الحفلات فقط، وحسب نوع المناسبة */
     const offered = (g) => (g.party ? !!party && (!g.types || g.types.includes(party.type)) : true);
     const link = () => location.origin + location.pathname + '?room=' + code + (key ? '&k=' + encodeURIComponent(key) : '') + '#online';
@@ -170,7 +175,7 @@
     const pickPlayer = (ids) => h('div.votes-grid', ids.map((id) => h('button.vote', { type: 'button', style: { '--c': colorOf(id) }, onclick() { send(id); } }, nameOf(id))));
     const endButtons = (again) => (isHost() ? h('div.row',
       h('button.btn.btn-primary', { type: 'button', onclick() { Sound.play('pop'); act(again); } }, '🔁 جولة جديدة'),
-      h('button.btn', { type: 'button', onclick() { Sound.play('tap'); act(toLobby); } }, party ? 'نرجع للحفلة' : 'نغيّر اللعبة')) : h('p.muted.center', party ? 'ننتظر الفقرة الجاية…' : 'المستضيف يختار: جولة جديدة أو لعبة ثانية.'));
+      h('button.btn', { type: 'button', onclick() { Sound.play('tap'); act(toLobby); } }, party ? 'نرجع لل' + nn() : 'نغيّر اللعبة')) : h('p.muted.center', party ? 'ننتظر الفقرة الجاية…' : 'المستضيف يختار: جولة جديدة أو لعبة ثانية.'));
     const left = (ends) => Math.max(0, Math.ceil((ends - net.now()) / 1000));
     /* عدّاد وقت يتحدّث لحاله: نص (دقيقة:ثانية) أو شريط */
     const clock = (ends) => { const el = h('span.pill', ''); const up = () => { const s = left(ends); el.textContent = '⏱ ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); el.classList.toggle('gold', s <= 5); }; ui.clocks.push(up); up(); return el; };
@@ -208,6 +213,7 @@
     }
     function tick() {
       if (!isHost() || !state) return;
+      if (party && SH.hafla && SH.hafla.tick) SH.hafla.tick(R);
       if (state.step === 'end' && state.scores && meta && meta.an !== state.n && awarded !== state.n) { awarded = state.n; award(); }
       const g = game();
       /* فقرة حفلة خلصت: نعلّم عليها في برنامج الحفلة */
@@ -248,11 +254,11 @@
         : !playing() && !g.watch ? [h('div.pass', h('span', { style: { fontSize: '64px', lineHeight: '1.2' } }, g.emoji), h('div.big', 'اللعبة شغّالة'), h('p.muted', 'تدخلون مع الجولة الجاية. خلّوا الصفحة مفتوحة.'))]
           : g.view(R);
       const tmp = h('div',
-        h('div.hud', party ? null : h('span.pill.gold', 'غرفة ' + code), g ? h('span.pill' + (party ? '.gold' : ''), g.emoji + ' ' + label(g)) : party ? h('span.pill.gold', '🎉 الحفلة') : null, h('span.pill', '👥 ' + here().length)),
+        h('div.hud', party ? null : h('span.pill.gold', 'غرفة ' + code), g ? h('span.pill' + (party ? '.gold' : ''), g.emoji + ' ' + label(g)) : party ? h('span.pill.gold', '🎉 ال' + nn()) : null, h('span.pill', '👥 ' + here().length)),
         conn ? null : h('div.note', h('b', 'انقطع الاتصال عندكم. '), 'نحاول نرجّعه، تأكدوا من النت.'),
         !conn || hostHere || isHost() ? null : h('div.note', 'المستضيف مو متصل الحين. ننتظر رجوعه…'),
         body,
-        g && isHost() && state.step !== 'end' ? h('button.btn.btn-sm.btn-ghost', { type: 'button', style: { alignSelf: 'center' }, async onclick() { Sound.play('tap'); if (await SH.confirm(party ? 'تنهون الفقرة وترجعون للحفلة؟' : 'تنهون اللعبة وترجعون للغرفة؟', party ? 'نرجع للحفلة' : 'نرجع للغرفة', 'نكمّل')) act(toLobby); } }, party ? 'نرجع للحفلة' : 'نغيّر اللعبة') : null);
+        g && isHost() && state.step !== 'end' ? h('button.btn.btn-sm.btn-ghost', { type: 'button', style: { alignSelf: 'center' }, async onclick() { Sound.play('tap'); if (await SH.confirm(party ? `تنهون الفقرة وترجعون لل${nn()}؟` : 'تنهون اللعبة وترجعون للغرفة؟', party ? 'نرجع لل' + nn() : 'نرجع للغرفة', 'نكمّل')) act(toLobby); } }, party ? 'نرجع لل' + nn() : 'نغيّر اللعبة') : null);
       box.replaceChildren(...tmp.childNodes);
       lastKey = key;
       const scene = g && g.calm && state.step !== 'end' ? state.game : [state.game, state.step, state.i, state.t, state.round].join(':');

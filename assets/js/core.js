@@ -368,7 +368,7 @@
 
     const haflaBanner = SH.online && SH.online.available() && SH.games.some((g) => g.id === 'hafla') ? h('a.hafla-banner', { href: '#hafla', onclick() { Sound.play('pop'); } },
       h('span.hb-e', { 'aria-hidden': 'true' }, '🎉'),
-      h('span.hb-t', h('b', 'حفلتكم على شبّة'), h('span', 'توديع عزوبية، بيبي شاور، عيد ميلاد: حطّوا صورها وجاوبوا عن أسئلتها، والضيوف يلعبون فقرات كلها عنها.')),
+      h('span.hb-t', h('b', 'حفلتكم على شبّة'), h('span', 'توديع عزوبية، بيبي شاور، عيد ميلاد، وفعاليات الفريق في الدوام: تجهّزونها مرة، والكل يلعب من جواله فقرات مخصّصة لكم.')),
       h('span.hb-go', 'جهّزوها')) : null;
 
     const own = mine(), ownCount = own.trivia.length + own.whois.length + own.truth.length + own.dare.length;

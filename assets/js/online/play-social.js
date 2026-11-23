@@ -4,6 +4,8 @@
   const { h, Sound, buzz, shuffle, pick } = SH;
   const fmt = (n) => (n >= 10000 ? Number(n).toLocaleString('en-US') : String(n));
   const tally = (votes) => { const c = {}; Object.keys(votes).forEach((v) => { c[votes[v]] = (c[votes[v]] || 0) + 1; }); return c; };
+  /* كلمات إضافية من جو المناسبة (مثل كلمات الدوام ومجال الشغل في فعالية الفريق) */
+  const extraCats = (R) => (R.party && SH.hafla ? SH.hafla.words(R.party) : []);
   const tops = (counts) => { const max = Math.max(0, ...Object.keys(counts).map((k) => counts[k])); return Object.keys(counts).filter((k) => counts[k] === max); };
 
   /* ---------- مين الدخيل؟ ---------- */
@@ -12,7 +14,7 @@
     async start(R, keep) {
       const ids = R.hereIds();
       if (ids.length < 3) { SH.toast('«مين الدخيل؟» تحتاج 3 لاعبين على الأقل'); return; }
-      const cat = pick(SH.OUTSIDER), word = pick(cat[3]), spy = pick(ids), sec = {};
+      const ex = extraCats(R), cat = ex.length && Math.random() < 0.7 ? pick(ex) : pick(SH.OUTSIDER), word = pick(cat[3]), spy = pick(ids), sec = {};
       ids.forEach((id) => { sec[id] = id === spy ? { spy: true } : { w: word }; });
       sec[R.me] = Object.assign(sec[R.me] || {}, { h: { spy, word, cat: cat[0] } });
       await R.deal(sec);
@@ -26,7 +28,7 @@
       const scores = Object.assign({}, s.scores || {});
       Object.keys(votes).forEach((v) => { if (votes[v] === hp.spy && v !== hp.spy) scores[v] = (scores[v] || 0) + 1; });
       if (!caught) scores[hp.spy] = (scores[hp.spy] || 0) + 3;
-      const words = SH.OUTSIDER.find((c) => c[0] === hp.cat)[3];
+      const words = SH.OUTSIDER.concat(extraCats(R)).find((c) => c[0] === hp.cat)[3];
       await R.step({ step: 'tally', votes, counts, spy: hp.spy, caught, scores, got: 0,
         options: caught ? shuffle([hp.word].concat(shuffle(words.filter((w) => w !== hp.word)).slice(0, 5))) : null, word: caught ? null : hp.word });
     },
@@ -211,7 +213,7 @@
     async start(R) {
       const ids = R.hereIds();
       if (ids.length < 2) { SH.toast('«لو خيّروك» تحتاج لاعبين على الأقل'); return; }
-      const pairs = shuffle(SH.WYR).slice(0, 30);
+      const pairs = (R.party && SH.hafla ? SH.hafla.extra(R.party, 'wyr') : []).concat(shuffle(SH.WYR)).slice(0, 30);
       await R.keep({ pairs });
       await R.put({ game: 'wyr', step: 'ask', who: ids, i: 0, a: pairs[0][0], b: pairs[0][1], got: 0 });
     },
@@ -238,4 +240,85 @@
     },
   };
   SH.onlineGame(wyr);
+
+  /* ---------- حقيقتين وكذبة ----------
+     كل واحد يكتب عن نفسه حقيقتين وكذبة. بعدها ندور على اللي كتبوا واحد واحد، والباقين يصوّتون وين الكذبة.
+     اللي يكشفها ياخذ نقطتين، وصاحب الجمل ياخذ نقطة عن كل واحد انخدع. */
+  const lie = {
+    id: 'lie', emoji: '🤥', name: 'حقيقتين وكذبة', desc: 'اكتبوا عن أنفسكم، والباقين يكشفون الكذبة', min: 3,
+    async start(R) {
+      const ids = R.hereIds();
+      if (ids.length < 3) { SH.toast('«حقيقتين وكذبة» تحتاج 3 لاعبين على الأقل'); return; }
+      await R.put({ game: 'lie', step: 'write', who: ids, got: 0 });
+    },
+    async collect(R) {
+      const got = R.got(), sets = {};
+      Object.keys(got).forEach((id) => { const v = got[id]; if (v && v.t && v.t.length === 2 && v.l) sets[id] = { t: [String(v.t[0]).slice(0, 80), String(v.t[1]).slice(0, 80)], l: String(v.l).slice(0, 80) }; });
+      const order = shuffle(Object.keys(sets)).slice(0, 8);
+      if (order.length < 2) { SH.toast('نحتاج اثنين على الأقل يكتبون'); return; }
+      await lie.round(R, { who: R.state.who, order, scores: null }, 0, { sets, order });
+    },
+    /* priv: { sets, order } نمرّرها لأن النسخة المحفوظة عند المستضيف ما تكون وصلت لسا */
+    async round(R, base, i, priv) {
+      const set = priv.sets[base.order[i]];
+      const items = shuffle([{ x: set.t[0] }, { x: set.t[1] }, { x: set.l, lie: true }]);
+      await R.keep({ sets: priv.sets, order: priv.order, k: items.findIndex((it) => it.lie) });
+      await R.put({ game: 'lie', step: 'guess', who: base.who, order: base.order, i, subject: base.order[i], items: items.map((it) => it.x), scores: base.scores || null, got: 0 });
+    },
+    async reveal(R) {
+      const s = R.state, got = R.got(), k = R.priv.k, picks = {}, scores = Object.assign({}, s.scores || {});
+      let fooled = 0;
+      Object.keys(got).forEach((id) => { if (id === s.subject) return; picks[id] = got[id]; if (got[id] === k) scores[id] = (scores[id] || 0) + 2; else fooled++; });
+      if (fooled) scores[s.subject] = (scores[s.subject] || 0) + fooled;
+      await R.step({ step: 'reveal', k, picks, fooled, scores, got: 0 });
+    },
+    async next(R) {
+      const s = R.state, i = s.i + 1;
+      if (i >= s.order.length) return R.put({ game: 'lie', step: 'end', who: s.who, scores: s.scores || null });
+      await lie.round(R, { who: s.who, order: s.order, scores: s.scores }, i, R.priv);
+    },
+    auto: {
+      write(R) { if (R.allIn()) R.act(() => lie.collect(R)); else R.syncGot(); },
+      guess(R) { if (!R.priv) return; if (R.allIn(R.state.who.filter((id) => id !== R.state.subject))) R.act(() => lie.reveal(R)); else R.syncGot(); },
+    },
+    view(R) {
+      const s = R.state, ui = R.ui, mem = R.mem, me = R.me;
+      if (s.step === 'write') {
+        const close = (cls) => R.hostBtn('نبدأ باللي كتبوا', () => lie.collect(R), cls);
+        if (ui.sent != null) return [h('div.pass', h('span', { style: { fontSize: '64px', lineHeight: '1.2' } }, '🤥'), h('div.big', 'جاهز!'), h('p.muted', 'لا تعلّم أحد وين الكذبة.'), R.waiting('ننتظر الباقين يكتبون')), close('.btn-ghost')];
+        ui.freeze = true;   /* لا نعيد رسم الشاشة والواحد يكتب */
+        mem.lie = mem.lie || ['', '', ''];
+        const inp = (i, label, ph) => h('label.field', h('span.label', label), h('input.inp', { id: 'lie-' + i, type: 'text', maxLength: 70, autocomplete: 'off', placeholder: ph, value: mem.lie[i], oninput(e) { mem.lie[i] = e.target.value; } }));
+        return [h('div.center', h('div.big', 'حقيقتين وكذبة'), h('p.muted', 'اكتب عن نفسك حقيقتين وكذبة وحدة، والباقين بيحاولون يكشفون الكذبة.')),
+          h('div.card', inp(0, '✅ حقيقة', 'مثل: زرت 12 دولة'), inp(1, '✅ حقيقة ثانية', 'مثل: أخاف من القطط'), inp(2, '🤥 الكذبة', 'مثل: فزت ببطولة سباحة')),
+          h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick() {
+            const v = mem.lie.map((x) => x.trim().replace(/\s+/g, ' '));
+            if (v.some((x) => !x)) { SH.toast('اكتب الثلاث كلها'); return; }
+            if (new Set(v).size < 3) { SH.toast('لازم الثلاث تكون مختلفة'); return; }
+            ui.freeze = false; mem.lie = null; R.send({ t: [v[0], v[1]], l: v[2] });
+          } }, 'جاهز ✓'),
+          close('.btn-ghost')];
+      }
+      if (s.step === 'guess' || s.step === 'reveal') {
+        const done = s.step === 'reveal', mine = s.subject === me, voters = s.who.filter((id) => id !== s.subject && R.isOn(id));
+        const my = done ? (s.picks || {})[me] : ui.sent;
+        const head = [h('div.hud', h('span.pill', `${s.i + 1} من ${s.order.length}`)),
+          h('div.turn', { style: { '--c': R.colorOf(s.subject) } }, h('p.eyebrow', done ? 'الكذبة كانت' : 'وين الكذبة؟'), h('div.who', R.nameOf(s.subject)))];
+        const opts = h('div.opts' + (done || mine || my != null ? '.locked' : ''), s.items.map((txt, k) => {
+          let cls = '';
+          if (done) cls = k === s.k ? '.right' : k === my ? '.wrong' : '.dim'; else if (my != null) cls = k === my ? '.sel' : '.dim';
+          return h('button.opt' + cls, { type: 'button', onclick() { if (!done && !mine && ui.sent == null) R.send(k); } }, h('span.k', done && k === s.k ? '🤥' : String(k + 1)), h('span', txt));
+        }));
+        if (!done) return head.concat([opts,
+          h('p.muted.center', mine ? 'الكل يحاول يكشف كذبتك… خلّك ثقيل 😏' : my != null ? `ننتظر الباقين (${s.got || 0} من ${voters.length})` : 'اضغط على الجملة اللي تحس إنها كذبة.'),
+          R.hostBtn('اكشف الحين', () => lie.reveal(R), '.btn-ghost')]);
+        const right = Object.keys(s.picks || {}).filter((id) => s.picks[id] === s.k).map((id) => R.nameOf(id));
+        return head.concat([opts,
+          h('div.note', h('b', mine ? (s.fooled ? `خدعت ${s.fooled}! +${s.fooled} ` : 'انكشفت! ') : my === s.k ? 'كفو، كشفتها! +2 ' : my == null ? 'ما لحقت تصوّت. ' : 'انخدعت! '), right.length ? 'كشفوها: ' + right.join('، ') : 'ولا أحد كشفها!'),
+          R.board(s.scores), R.hostBtn(s.i + 1 < s.order.length ? 'اللي بعده' : 'النتيجة', () => lie.next(R))]);
+      }
+      return [h('div.center', h('span', { style: { fontSize: '70px', lineHeight: '1.2' } }, '🏆'), h('div.big', 'النتيجة')), R.board(s.scores), h('div.spacer'), R.endButtons(() => lie.start(R))];
+    },
+  };
+  SH.onlineGame(lie);
 })();

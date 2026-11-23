@@ -14,7 +14,7 @@
         if (ids.length < def.min) { SH.toast(`«${def.name}» تحتاج ${def.min} لاعبين على الأقل`); return; }
         await R.put({ game: def.id, step: 'ready', who: ids, t: 0, turns: ids.length * (ids.length <= 3 ? 2 : 1), actor: ids[0], watch: def.watch ? ids[1 % ids.length] : null, got: 0 });
       },
-      async deal(R) { const s = R.state, card = def.draw(); await R.tell(s.actor, { card }); if (s.watch) await R.tell(s.watch, { card }); },
+      async deal(R) { const s = R.state, card = def.draw(R); await R.tell(s.actor, { card }); if (s.watch) await R.tell(s.watch, { card }); },
       async begin(R) { await g.deal(R); await R.step({ step: 'turn', ends: R.now() + 60000, count: 0, skips: 3, k: 0, got: 0 }); },
       async action(R, a) {
         const s = R.state; let count = s.count, skips = s.skips;
@@ -79,7 +79,12 @@
     id: 'charades', emoji: '🎭', name: 'بدون كلام', desc: 'الكلمة على جوالك، مثّلها للباقين', min: 2, watch: false, verb: 'يمثّل…',
     actorHint: 'بتطلع لك كلمات على جوالك. مثّلها بدون كلام، وكل ما خمّنوها اضغط «خمّنوها».',
     guessHint: 'ركّزوا معه وخمّنوا بصوت عالي. لو كل واحد في مكان، افتحوا مكالمة فيديو.',
-    draw: () => { const c = pick(SH.CHARADES); return { w: pick(c[2]), tag: c[1] }; },
+    /* في مناسبات الدوام نصف الكلمات من جو الدوام ومجال الشغل */
+    draw: (R) => {
+      const ex = R.party && SH.hafla ? SH.hafla.words(R.party) : [];
+      if (ex.length && Math.random() < 0.5) { const x = pick(ex); return { w: pick(x[3]), tag: x[1] + ' ' + x[2] }; }
+      const c = pick(SH.CHARADES); return { w: pick(c[2]), tag: c[1] };
+    },
     face: (c) => h('div.prompt.grow', h('span.tag', c.tag), h('span.word', { style: { fontSize: 'clamp(34px, 9.5vw, 56px)' } }, c.w), h('span.small', 'مثّلها بدون كلام')),
   });
   turns({

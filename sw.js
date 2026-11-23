@@ -1,11 +1,11 @@
 /* شبّة — عامل الخدمة: يخزّن الملفات عشان الموقع يشتغل بدون نت */
-const CACHE = 'shabbah-v9';
+const CACHE = 'shabbah-v10';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest',
   'assets/css/style.css',
   'assets/js/core.js', 'assets/js/share.js', 'assets/js/engines.js',
   'assets/js/data/trivia.js', 'assets/js/data/quiz.js', 'assets/js/data/words.js', 'assets/js/data/social.js',
-  'assets/js/data/trivia-2.js', 'assets/js/data/quiz-2.js', 'assets/js/data/words-2.js', 'assets/js/data/social-2.js',
+  'assets/js/data/trivia-2.js', 'assets/js/data/quiz-2.js', 'assets/js/data/words-2.js', 'assets/js/data/social-2.js', 'assets/js/data/office.js',
   'assets/js/games/trivia.js', 'assets/js/games/outsider.js', 'assets/js/games/charades.js', 'assets/js/games/social.js',
   'assets/js/games/quizzes.js', 'assets/js/games/party.js', 'assets/js/games/skill.js', 'assets/js/games/tour.js', 'assets/js/games/mine.js',
   'assets/js/online/config.js', 'assets/js/online/net.js', 'assets/js/online/online.js',
